@@ -9,35 +9,35 @@ from google.cloud import storage
 from google.oauth2 import service_account
 from googleapiclient import discovery
 
-project = os.environ.get("project")
-region = os.environ.get("region")
-function_name = os.environ.get("cloud_functions_name")
-functions_directory = os.environ.get("cloud_functions_directory")
-credentials = os.environ.get("GCP_SERVICE_ACCOUNT")
+gcp_project = os.environ.get("gcp_project")
+gcp_region = os.environ.get("gcp_region")
+cloud_function_name = os.environ.get("cloud_function_name")
+cloud_function_directory = os.environ.get("cloud_function_directory")
+credentials = os.environ.get("credentials")
 
-if not project:
-    raise Exception("Missing `project` config")
+if not gcp_project:
+    raise Exception("Missing `gcp_project` config")
 
-if not region:
-    raise Exception("Missing `region` config")
+if not gcp_region:
+    raise Exception("Missing `gcp_region` config")
 
-if not function_name:
+if not cloud_function_name:
     raise Exception("Missing `cloud_functions_name` config")
 
-if not functions_directory:
+if not cloud_function_directory:
     raise Exception("Missing `cloud_functions_directory` config")
 
 if not credentials:
-    raise Exception("Missing `GCP_SERVICE_ACCOUNT` config")
+    raise Exception("Missing `credentials` config")
 
 
 def zip_directory(handler: zipfile.ZipFile):
-    for root, dirs, files in os.walk(functions_directory):  # type: ignore # noqa: B007
+    for root, dirs, files in os.walk(cloud_function_directory):  # type: ignore # noqa: B007
         for file in files:
             handler.write(
                 os.path.join(root, file),
                 os.path.relpath(
-                    os.path.join(root, file), os.path.join(functions_directory, ".")
+                    os.path.join(root, file), os.path.join(cloud_function_directory, ".")
                 ),
             )
 
@@ -70,8 +70,8 @@ def upload_source_code_using_upload_url(upload_url):
     print(f"Response from source code upload using upload_url: {response}")
 
 
-parent = f"projects/{project}/locations/{region}"
-function_path = f"projects/{project}/locations/{region}/functions/{function_name}"
+parent = f"projects/{gcp_project}/locations/{gcp_region}"
+function_path = f"projects/{gcp_project}/locations/{gcp_region}/functions/{cloud_function_name}"
 
 service = discovery.build("cloudfunctions", "v1", credentials=get_bq_credentials())
 cloud_functions = service.projects().locations().functions()
