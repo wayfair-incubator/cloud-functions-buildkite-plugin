@@ -1,0 +1,23 @@
+name: "Cloud Functions Buildkite Plugin"
+description: "This buildkite plugin can be used to deploy code to Cloud Functions"
+author: "Jash Parekh <jash389@gmail.com>"
+requirements:
+  - bash
+configuration:
+  properties:
+    gcp_project:
+      type: string
+    gcp_region:
+      type: string
+    cloud_function_name:
+      type: string
+    cloud_function_directory:
+      type: string
+    gcp_service_account:
+      type: string
+  required:
+    - gcp_project
+    - gcp_region
+    - cloud_function_name
+    - cloud_functions_directory
+  additionalProperties: false
