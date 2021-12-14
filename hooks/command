@@ -43,7 +43,7 @@ if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_DIRECTORY}" ]; then
 	exit 1
 fi
 
-cloud_functions_directory="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_DIRECTORY}"
+cloud_function_directory="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_DIRECTORY}"
 
 if [ -z "${gcp_service_account}" ]; then
 	echo "ERROR: gcp service account (gcp_service_account) not set"
@@ -57,7 +57,7 @@ if [[ ${debug_mode} == "true" ]]; then
 	echo "GCP Project: ${gcp_project}"
 	echo "GCP Region: ${gcp_region}"
 	echo "Cloud Function Name: ${cloud_function_name}"
-	echo "Cloud Function Directory: ${cloud_functions_directory}"
+	echo "Cloud Function Directory: ${cloud_function_directory}"
 	echo "Docker Image: ${image}"
 fi
 
@@ -90,7 +90,7 @@ args+=(
 	"--env" "gcp_project=$gcp_project"
 	"--env" "gcp_region=$gcp_region"
 	"--env" "cloud_function_name=$cloud_function_name"
-	"--env" "cloud_functions_directory=$cloud_functions_directory"
+	"--env" "cloud_function_directory=$cloud_function_directory"
 	"--env" "credentials=$(</tmp/service_account.json)"
 	"--volume" "$BUILDKITE_AGENT_BINARY_PATH:/usr/bin/buildkite-agent"
 )
