@@ -36,7 +36,7 @@ if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_NAME}" ]; then
 	exit 1
 fi
 
-cloud_function_name="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_DIRECTORY}"
+cloud_function_name="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_NAME}"
 
 if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_DIRECTORY}" ]; then
 	echo "ERROR: cloud function directory (cloud_function_directory) not set"
