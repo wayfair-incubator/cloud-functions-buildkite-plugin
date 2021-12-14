@@ -145,7 +145,7 @@ def _deploy():
                 name=function_path, body=function
             ).execute()
             _logger.info(
-                f"Successfully patched Cloud Function. Name: {response['name']}, Version ID: {response['versionId']}, Updated Timestamp: {response['updateTime']}"
+                f"Successfully patched Cloud Function. Operation Name: {response['name']}"
             )
 
             if debug_mode:
