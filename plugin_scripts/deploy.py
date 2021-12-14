@@ -67,7 +67,7 @@ def _upload_source_code_using_upload_url(upload_url: str, data):
     _logger.info(f"HTTP Status Code for uploading data: {response.status_code}")
 
     if os.environ.get("debug_mode", False):
-        _logger.debug(f"Response body: {response.text}")
+        _logger.info(f"Response body: {response.text}")
 
 
 def _validate_env_variables():
@@ -100,7 +100,7 @@ def _validate_if_path_exists():
 
 def _handle_exception(e, debug_mode):
     if debug_mode:
-        _logger.debug(f"HTTP Status Code for patching Function: {str(e)}")
+        _logger.info(f"HTTP Status Code for patching Function: {str(e)}")
 
 
 def _deploy():
@@ -149,7 +149,7 @@ def _deploy():
             )
 
             if debug_mode:
-                _logger.debug(f"Response: {response}")
+                _logger.info(f"Response: {response}")
         except Exception as e:
             deploy_failed = True
             _handle_exception(e, debug_mode)
