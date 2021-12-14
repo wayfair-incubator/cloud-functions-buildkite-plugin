@@ -91,6 +91,7 @@ args+=(
 	"--env" "gcp_region=$gcp_region"
 	"--env" "cloud_function_name=$cloud_function_name"
 	"--env" "cloud_function_directory=$cloud_function_directory"
+	"--env" "debug_mode=$debug_mode"
 	"--env" "credentials=$(</tmp/service_account.json)"
 	"--volume" "$BUILDKITE_AGENT_BINARY_PATH:/usr/bin/buildkite-agent"
 )

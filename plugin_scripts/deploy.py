@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 import zipfile
@@ -9,10 +10,16 @@ import requests
 from google.cloud import storage
 from google.oauth2 import service_account
 from googleapiclient import discovery
+from requests import Response
 
 from plugin_scripts.pipeline_exceptions import CloudFunctionDirectoryNonExistent
 
 sys.tracebacklimit = 0
+
+_logger = logging.getLogger("cloud-function")
+_logger.setLevel(logging.INFO)
+console = logging.StreamHandler(sys.stdout)
+_logger.addHandler(console)
 
 
 def _zip_directory(handler: zipfile.ZipFile):
@@ -43,6 +50,7 @@ def _upload_source_code_using_archive_url(archive_url: str, data):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
     blob.upload_from_string(data.read())
+    _logger.info(f"Source code object {blob_name} uploaded to bucket {bucket_name}.")
 
 
 def _upload_source_code_using_upload_url(upload_url: str, data):
@@ -52,11 +60,14 @@ def _upload_source_code_using_upload_url(upload_url: str, data):
         "content-type": "application/zip",
         "x-goog-content-length-range": "0,104857600",
     }
-    requests.put(upload_url, headers=headers, data=data)
+    response: Response = requests.put(upload_url, headers=headers, data=data)
+    _logger.info(f"HTTP Status Code for uploading data: {response.status_code}")
+
+    if os.environ.get("debug_mode", False):
+        _logger.info(f"Response body: {response.text}")
 
 
 def _validate_env_variables():
-    print(os.environ)
     gcp_project = os.environ.get("gcp_project")
     gcp_region = os.environ.get("gcp_region")
     cloud_function_name = os.environ.get("cloud_function_name")
@@ -108,7 +119,7 @@ def _deploy():
 
         if "sourceArchiveUrl" in function:
             archive_url = function["sourceArchiveUrl"]
-            _upload_source_code_using_archive_url(archive_url)
+            _upload_source_code_using_archive_url(archive_url, data)
         else:
             # https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions/generateUploadUrl
             upload_url = cloud_functions.generateUploadUrl(
@@ -117,7 +128,11 @@ def _deploy():
             _upload_source_code_using_upload_url(upload_url, data)
             function["sourceUploadUrl"] = upload_url
 
-    cloud_functions.patch(name=function_path, body=function).execute()
+    response = cloud_functions.patch(name=function_path, body=function).execute()
+    _logger.info(f"HTTP Status Code for patching Function: {response.status_code}")
+
+    if os.environ.get("debug_mode", False):
+        _logger.info(f"Response body: {response.text}")
 
 
 def main():
