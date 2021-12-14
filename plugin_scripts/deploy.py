@@ -12,7 +12,10 @@ from google.oauth2 import service_account
 from googleapiclient import discovery
 from requests import Response
 
-from plugin_scripts.pipeline_exceptions import CloudFunctionDirectoryNonExistent
+from plugin_scripts.pipeline_exceptions import (
+    CloudFunctionDirectoryNonExistent,
+    DeployFailed,
+)
 
 sys.tracebacklimit = 0
 
@@ -64,7 +67,7 @@ def _upload_source_code_using_upload_url(upload_url: str, data):
     _logger.info(f"HTTP Status Code for uploading data: {response.status_code}")
 
     if os.environ.get("debug_mode", False):
-        _logger.info(f"Response body: {response.text}")
+        _logger.debug(f"Response body: {response.text}")
 
 
 def _validate_env_variables():
@@ -95,44 +98,67 @@ def _validate_if_path_exists():
     return os.path.isdir(cloud_function_directory)
 
 
+def _handle_exception(e, debug_mode):
+    if debug_mode:
+        _logger.debug(f"HTTP Status Code for patching Function: {str(e)}")
+
+
 def _deploy():
-    gcp_project = os.environ.get("gcp_project")
-    gcp_region = os.environ.get("gcp_region")
-    cloud_function_name = os.environ.get("cloud_function_name")
+    deploy_failed = False
+    debug_mode = os.environ.get("debug_mode", False)
 
-    parent = f"projects/{gcp_project}/locations/{gcp_region}"
-    function_path = (
-        f"projects/{gcp_project}/locations/{gcp_region}/functions/{cloud_function_name}"
-    )
+    try:
+        gcp_project = os.environ.get("gcp_project")
+        gcp_region = os.environ.get("gcp_region")
+        cloud_function_name = os.environ.get("cloud_function_name")
 
-    service = discovery.build("cloudfunctions", "v1", credentials=_get_bq_credentials())
-    cloud_functions = service.projects().locations().functions()
+        parent = f"projects/{gcp_project}/locations/{gcp_region}"
+        function_path = f"projects/{gcp_project}/locations/{gcp_region}/functions/{cloud_function_name}"
 
-    # check if cloud function exists, if it exists execution continues as is otherwise it will raise an exception
-    function = cloud_functions.get(name=function_path).execute()
+        service = discovery.build(
+            "cloudfunctions", "v1", credentials=_get_bq_credentials()
+        )
+        cloud_functions = service.projects().locations().functions()
 
-    with TemporaryFile() as data:
-        file_handler = zipfile.ZipFile(data, mode="w")
-        _zip_directory(file_handler)
-        file_handler.close()
-        data.seek(0)
+        # check if cloud function exists, if it exists execution continues as is otherwise it will raise an exception
+        function = cloud_functions.get(name=function_path).execute()
 
-        if "sourceArchiveUrl" in function:
-            archive_url = function["sourceArchiveUrl"]
-            _upload_source_code_using_archive_url(archive_url, data)
-        else:
-            # https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions/generateUploadUrl
-            upload_url = cloud_functions.generateUploadUrl(
-                parent=parent, body={}
-            ).execute()["uploadUrl"]
-            _upload_source_code_using_upload_url(upload_url, data)
-            function["sourceUploadUrl"] = upload_url
+        with TemporaryFile() as data:
+            file_handler = zipfile.ZipFile(data, mode="w")
+            _zip_directory(file_handler)
+            file_handler.close()
+            data.seek(0)
 
-    response = cloud_functions.patch(name=function_path, body=function).execute()
-    _logger.info(f"HTTP Status Code for patching Function: {response}")
+            if "sourceArchiveUrl" in function:
+                archive_url = function["sourceArchiveUrl"]
+                _upload_source_code_using_archive_url(archive_url, data)
+            else:
+                # https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions/generateUploadUrl
+                upload_url = cloud_functions.generateUploadUrl(
+                    parent=parent, body={}
+                ).execute()["uploadUrl"]
+                _upload_source_code_using_upload_url(upload_url, data)
+                function["sourceUploadUrl"] = upload_url
 
-    if os.environ.get("debug_mode", False):
-        _logger.info(f"Response body: {response.text}")
+        try:
+            response = cloud_functions.patch(
+                name=function_path, body=function
+            ).execute()
+            _logger.info(
+                f"Successfully patched Cloud Function. Name: {response['name']}, Version ID: {response['versionId']}, Updated Timestamp: {response['updateTime']}"
+            )
+
+            if debug_mode:
+                _logger.debug(f"Response: {response}")
+        except Exception as e:
+            deploy_failed = True
+            _handle_exception(e, debug_mode)
+    except Exception as e:
+        deploy_failed = True
+        _handle_exception(e, debug_mode)
+
+    if deploy_failed:
+        raise DeployFailed
 
 
 def main():
