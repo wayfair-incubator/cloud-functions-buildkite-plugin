@@ -129,7 +129,7 @@ def _deploy():
             function["sourceUploadUrl"] = upload_url
 
     response = cloud_functions.patch(name=function_path, body=function).execute()
-    _logger.info(f"HTTP Status Code for patching Function: {response.status_code}")
+    _logger.info(f"HTTP Status Code for patching Function: {response}")
 
     if os.environ.get("debug_mode", False):
         _logger.info(f"Response body: {response.text}")
