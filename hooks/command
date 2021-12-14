@@ -87,8 +87,10 @@ args+=(
 	"--env" "BUILDKITE_JOB_ID"
 	"--env" "BUILDKITE_BUILD_ID"
 	"--env" "BUILDKITE_AGENT_ACCESS_TOKEN"
-	"--env" "dataset_schema_directory=$dataset_schema_directory"
 	"--env" "gcp_project=$gcp_project"
+	"--env" "gcp_region=$gcp_region"
+	"--env" "cloud_function_name=$cloud_function_name"
+	"--env" "cloud_functions_directory=$cloud_functions_directory"
 	"--env" "credentials=$(</tmp/service_account.json)"
 	"--volume" "$BUILDKITE_AGENT_BINARY_PATH:/usr/bin/buildkite-agent"
 )
