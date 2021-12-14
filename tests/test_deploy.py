@@ -1,6 +1,10 @@
 import pytest
 
 from plugin_scripts import deploy
+from plugin_scripts.pipeline_exceptions import (
+    CloudFunctionDirectoryNonExistent,
+    DeployFailed,
+)
 
 
 @pytest.fixture
@@ -25,7 +29,7 @@ def gcp_region(monkeypatch):
 
 @pytest.fixture
 def credentials(monkeypatch):
-    return monkeypatch.setenv("credentials", "{'secret': 'value'}")
+    return monkeypatch.setenv("credentials", '{"secret": "value"}')
 
 
 def test__validate_env_variables_missing_cloud_function_directory(
@@ -36,12 +40,28 @@ def test__validate_env_variables_missing_cloud_function_directory(
     assert exec_info.value.args[0] == "Missing `cloud_function_directory` config"
 
 
+def test__validate_env_variables_missing_cloud_function_name(
+    gcp_project, credentials, gcp_region, cloud_function_directory
+):
+    with pytest.raises(Exception) as exec_info:
+        deploy._validate_env_variables()
+    assert exec_info.value.args[0] == "Missing `cloud_function_name` config"
+
+
 def test__validate_env_variables_missing_gcp_project(
     cloud_function_directory, credentials, gcp_region, cloud_function_name
 ):
     with pytest.raises(Exception) as exec_info:
         deploy._validate_env_variables()
     assert exec_info.value.args[0] == "Missing `gcp_project` config"
+
+
+def test__validate_env_variables_missing_gcp_region(
+    cloud_function_directory, credentials, gcp_project, cloud_function_name
+):
+    with pytest.raises(Exception) as exec_info:
+        deploy._validate_env_variables()
+    assert exec_info.value.args[0] == "Missing `gcp_region` config"
 
 
 def test__validate_env_variables_missing_credentials(
@@ -56,4 +76,71 @@ def test__validate_env_variables_all_variables_present(
     gcp_project, cloud_function_directory, credentials, gcp_region, cloud_function_name
 ):
     deploy._validate_env_variables()
+    assert True
+
+
+def test__validate_if_path_exists_true(mocker, cloud_function_directory):
+    os_mock = mocker.patch("plugin_scripts.deploy.os")
+    os_mock.path.isdir.return_value = True
+    assert deploy._validate_if_path_exists()
+
+
+def test__validate_if_path_exists_false(mocker, cloud_function_directory):
+    os_mock = mocker.patch("plugin_scripts.deploy.os")
+    os_mock.path.isdir.return_value = False
+    assert not deploy._validate_if_path_exists()
+
+
+def test__get_bq_credentials(mocker, credentials):
+    expected = '{"secret": "value"}'
+    mocker.patch(
+        "plugin_scripts.deploy.service_account.Credentials.from_service_account_info"
+    ).return_value = expected
+    response = deploy._get_bq_credentials()
+    assert response == expected
+
+
+def test_main_schema_directory_false(
+    mocker,
+    gcp_project,
+    cloud_function_directory,
+    credentials,
+    gcp_region,
+    cloud_function_name,
+):
+    os_mock = mocker.patch("plugin_scripts.deploy.os")
+    os_mock.path.isdir.return_value = False
+
+    with pytest.raises(CloudFunctionDirectoryNonExistent):
+        deploy.main()
+
+
+def test_main_false(
+    mocker,
+    gcp_project,
+    cloud_function_directory,
+    credentials,
+    gcp_region,
+    cloud_function_name,
+):
+    os_mock = mocker.patch("plugin_scripts.deploy.os")
+    os_mock.path.isdir.return_value = True
+
+    with pytest.raises(DeployFailed):
+        deploy.main()
+
+
+def test_main_true(
+    mocker,
+    gcp_project,
+    cloud_function_directory,
+    credentials,
+    gcp_region,
+    cloud_function_name,
+):
+    os_mock = mocker.patch("plugin_scripts.deploy.os")
+    os_mock.path.isdir.return_value = True
+
+    mocker.patch("plugin_scripts.deploy._deploy")
+    deploy.main()
     assert True
