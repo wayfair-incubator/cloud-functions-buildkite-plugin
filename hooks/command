@@ -14,7 +14,7 @@ fi
 
 workdir="/workdir"
 
-default_image="python:3.9.7-buster"
+default_image="python:3.10.1-buster"
 image="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CUSTOM_IMAGE:-$default_image}"
 
 if [ -z "$BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_PROJECT" ]; then
