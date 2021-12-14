@@ -25,7 +25,7 @@ if not cloud_function_name:
     raise Exception("Missing `cloud_functions_name` config")
 
 if not cloud_function_directory:
-    raise Exception("Missing `cloud_functions_directory` config")
+    raise Exception("Missing `cloud_function_directory` config")
 
 if not credentials:
     raise Exception("Missing `credentials` config")
