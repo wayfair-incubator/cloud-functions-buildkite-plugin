@@ -24,7 +24,7 @@ jobs:
           test-requirements: "true"
 
       - name: Run pytest
-        run: pytest --cov plugin_scripts/ tests/test_deploy.py --cov-report xml:coverage-${{ env.PYTHON_VERSION }}.xml --junitxml=test-results-${{ env.PYTHON_VERSION }}.xml
+        run: pytest --cov plugin_scripts/ tests --cov-report xml:coverage-${{ env.PYTHON_VERSION }}.xml --junitxml=test-results-${{ env.PYTHON_VERSION }}.xml
 
       - name: Upload pytest test results artifact
         uses: actions/upload-artifact@v2
