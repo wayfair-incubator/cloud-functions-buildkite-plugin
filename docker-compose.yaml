@@ -45,6 +45,8 @@ services:
   py-test:
     <<: *devbox
     command: "docker/run_tests.sh --format-code"
+    volumes:
+      - "./:/app"
 
   lock-requirements:
     <<: *devbox
