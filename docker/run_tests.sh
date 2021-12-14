@@ -43,11 +43,11 @@ mypy plugin_scripts tests
 echo "Running iSort..."
 isort ${ISORT_ACTION} plugin_scripts tests
 
-#echo "Running black..."
-#black ${BLACK_ACTION} plugin_scripts tests
-#
-#echo "Running flake8..."
-#flake8 plugin_scripts tests
-#
-#echo "Running bandit..."
-#bandit --ini .bandit --quiet -r plugin_scripts tests
+echo "Running black..."
+black ${BLACK_ACTION} plugin_scripts tests
+
+echo "Running flake8..."
+flake8 plugin_scripts tests
+
+echo "Running bandit..."
+bandit --ini .bandit --quiet -r plugin_scripts tests
