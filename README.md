@@ -57,7 +57,7 @@ steps:
           gcp_project: "gcp-us-project"
           gcp_region: "us-central1"
           cloud_function_name: "function-1"
-          cloud_functions_directory: "directory/project"
+          cloud_function_directory: "directory/project"
 ```
 
 ## Developing

@@ -19,5 +19,5 @@ configuration:
     - gcp_project
     - gcp_region
     - cloud_function_name
-    - cloud_functions_directory
+    - cloud_function_directory
   additionalProperties: false
