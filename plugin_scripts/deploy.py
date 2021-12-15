@@ -25,6 +25,8 @@ _logger.setLevel(logging.INFO)
 console = logging.StreamHandler(sys.stdout)
 _logger.addHandler(console)
 
+print(os.environ)
+
 
 def _zip_directory(handler: zipfile.ZipFile):
     cloud_function_directory = os.environ.get("cloud_function_directory")
