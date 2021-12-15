@@ -1,66 +1,78 @@
-# OSPO Project Template
+# Cloud Functions Buildkite Plugin
 
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](CODE_OF_CONDUCT.md)
+This buildkite plugin can be used to deploy code to Cloud Functions
 
-## About The Project
+See the [plugin tester](https://github.com/buildkite-plugins/buildkite-plugin-tester) for testing examples and usage, and the (Buildkite docs on writing plugins)[https://buildkite.com/docs/plugins/writing] to understand everything in this repo.
 
-Provide some information about what the project is/does.
+[![Build status](https://badge.buildkite.com/d386e7f164ca1a3164302c7b17dca216c8ddcc8806d20c45db.svg?branch=master)](https://buildkite.com/wayfair/deploy-cloud-functions-buildkite-plugin)
 
+## Configuration
 
-## Getting Started
+### Required
 
-To get a local copy up and running follow these simple steps.
+### `gcp_project` (required, string)
 
+The name of the GCP project you want to deploy.
 
-### Prerequisites
+Example: `wf-gcp-us-ae-buyfair-dev`
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+### `gcp_region` (required, string)
 
-### Installation
+GCP region where the cloud function is hosted.
 
-1. Clone the repo
-   ```sh
-   git clone https://github.com/org_name/repo_name.git
-   ```
-2. Install NPM packages
-   ```sh
-   npm install
-   ```
+Example: `us-central1`
 
+### `cloud_function_name` (required, string)
 
-## Usage
+Name of the cloud function in GCP.
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+Example: `function-1`
 
-_For more examples, please refer to the [Documentation](https://example.com) or the [Wiki](https://github.com/org_name/repo_name/wiki)_
+### `cloud_function_directory` (required, string)
 
+The directory in your repository where are you storing the schemas for your tables and views.
 
-## Roadmap
+Example: `wf-gcp-project/function-1`
 
-See the [open issues](https://github.com/org_name/repo_name/issues) for a list of proposed features (and known issues).
+## Secret
 
+This plugin expects `GCP_SERVICE_ACCOUNT` is placed as environment variable. Make sure to store it [securely](https://buildkite.com/docs/pipelines/secrets)!
 
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**. For detailed contributing guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.md)
+```yaml
+env:
+  gcp_service_account: '{"email": ""}'
+```
 
 
-## License
+## Using the plugin
 
-Distributed under the `<License name>` License. See `LICENSE` for more information.
+If the version number is not provided then the most recent version of the plugin will be used. Do not use version number as `master` or any branch names.
 
+### Simple
 
-## Contact
+```yaml
+steps:
+  - plugins:
+      - wayfair-incubator/cloud-functions#v0.1.0:
+          gcp_project: "gcp-us-project"
+          gcp_region: "us-central1"
+          cloud_function_name: "function-1"
+          cloud_function_directory: "directory/project"
+```
 
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email
+## Developing
 
-Project Link: [https://github.com/org_name/repo_name](https://github.com/org_name/repo_name)
+You can use the [bk cli](https://github.com/buildkite/cli) to run the test pipeline locally, or just the tests using Docker Compose directly:
 
-## Acknowledgements
+```bash
+docker-compose run --rm test
+```
 
-This template adapted from
-[https://github.com/othneildrew/Best-README-Template](https://github.com/othneildrew/Best-README-Template)
+You can also run linting using Docker Compose directly:
+
+```bash
+docker-compose run --rm lint
+```
+
+# Authors
+`Jash Parekh <jash389@gmail.com>`
