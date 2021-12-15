@@ -140,7 +140,7 @@ args+=("${command_string}")
 display_command+=("'${command_string}'")
 
 echo "--- :docker: Pulling ${image}"
-if ! retry "${image:-3}" \
+if ! retry "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_DOCKER_PULL_RETRIES:-3}" \
      docker pull "${image}" ; then
   rv=$?
   echo "--- :docker: Pull failed."
