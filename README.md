@@ -22,7 +22,7 @@ steps:
           gcp_project: "gcp-us-project"
           gcp_region: "us-central1"
           cloud_function_name: "function-1"
-          cloud_function_directory: "directory/project"
+          cloud_function_directory: "directory/function-code"
 ```
 
 ## Configuration
@@ -33,7 +33,7 @@ steps:
 
 The name of the GCP project you want to deploy.
 
-Example: `wf-gcp-us-ae-buyfair-dev`
+Example: `gcp-us-project`
 
 ### `gcp_region` (required, string)
 
@@ -51,7 +51,7 @@ Example: `function-1`
 
 The directory in your repository where are you storing the code files for cloud function.
 
-Example: `wf-gcp-project/function-1`
+Example: `directory/function-code`
 
 ## Secret
 
