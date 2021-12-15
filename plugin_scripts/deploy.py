@@ -1,3 +1,4 @@
+import ast
 import json
 import logging
 import os
@@ -24,8 +25,6 @@ _logger = logging.getLogger("cloud-function")
 _logger.setLevel(logging.INFO)
 console = logging.StreamHandler(sys.stdout)
 _logger.addHandler(console)
-
-print(os.environ)
 
 
 def _zip_directory(handler: zipfile.ZipFile):
@@ -59,7 +58,7 @@ def _upload_source_code_using_archive_url(archive_url: str, data):
     _logger.info(f"Source code object {blob_name} uploaded to bucket {bucket_name}. \n")
 
 
-def _upload_source_code_using_upload_url(upload_url: str, data):
+def _upload_source_code_using_upload_url(upload_url: str, debug_mode: bool, data):
     # Prepare Header and data for PUT request
     # https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions/generateUploadUrl
     headers = {
@@ -69,7 +68,7 @@ def _upload_source_code_using_upload_url(upload_url: str, data):
     response: Response = requests.put(upload_url, headers=headers, data=data)
     _logger.info(f"HTTP Status Code for uploading data: {response.status_code} \n")
 
-    if os.environ.get("debug_mode", False):
+    if debug_mode:
         _logger.info(f"Response body: {pformat(response.json)} \n")
 
 
@@ -106,9 +105,8 @@ def _handle_exception(e, debug_mode):
         _logger.info(f"HTTP Status Code for patching Function: {str(e)} \n")
 
 
-def _deploy():
+def _deploy(debug_mode: bool):
     deploy_failed = False
-    debug_mode = os.environ.get("debug_mode", False)
 
     try:
         gcp_project = os.environ.get("gcp_project")
@@ -143,7 +141,7 @@ def _deploy():
                 upload_url = cloud_functions.generateUploadUrl(
                     parent=parent, body={}
                 ).execute()["uploadUrl"]
-                _upload_source_code_using_upload_url(upload_url, data)
+                _upload_source_code_using_upload_url(upload_url, debug_mode, data)
                 function["sourceUploadUrl"] = upload_url
 
         try:
@@ -167,8 +165,11 @@ def _deploy():
 
 
 def main():
+    env_debug_mode: str = os.environ["debug_mode"].title()
+    debug_mode = ast.literal_eval(env_debug_mode)
+
     _validate_env_variables()
     if _validate_if_path_exists():
-        _deploy()
+        _deploy(debug_mode)
     else:
         raise CloudFunctionDirectoryNonExistent

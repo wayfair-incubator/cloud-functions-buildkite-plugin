@@ -8,6 +8,11 @@ from plugin_scripts.pipeline_exceptions import (
 
 
 @pytest.fixture
+def debug_mode(monkeypatch):
+    return monkeypatch.setenv("debug_mode", "false")
+
+
+@pytest.fixture
 def cloud_function_directory(monkeypatch):
     return monkeypatch.setenv("cloud_function_directory", "schemas/project")
 
@@ -100,46 +105,49 @@ def test__get_bq_credentials(mocker, credentials):
     assert response == expected
 
 
-def test_main_schema_directory_false(
-    mocker,
-    gcp_project,
-    cloud_function_directory,
-    credentials,
-    gcp_region,
-    cloud_function_name,
-):
+def test_main_cloud_function_directory_false(mocker):
     os_mock = mocker.patch("plugin_scripts.deploy.os")
     os_mock.path.isdir.return_value = False
+    os_mock.environ = {
+        "debug_mode": "false",
+        "gcp_project": "gcp_project",
+        "cloud_function_directory": "cloud_function_directory",
+        "credentials": "credentials",
+        "gcp_region": "gcp_region",
+        "cloud_function_name": "cloud_function_name",
+    }
 
     with pytest.raises(CloudFunctionDirectoryNonExistent):
         deploy.main()
 
 
-def test_main_false(
-    mocker,
-    gcp_project,
-    cloud_function_directory,
-    credentials,
-    gcp_region,
-    cloud_function_name,
-):
+def test_main_false(mocker):
     os_mock = mocker.patch("plugin_scripts.deploy.os")
     os_mock.path.isdir.return_value = True
+    os_mock.environ = {
+        "debug_mode": "false",
+        "gcp_project": "gcp_project",
+        "cloud_function_directory": "cloud_function_directory",
+        "credentials": "credentials",
+        "gcp_region": "gcp_region",
+        "cloud_function_name": "cloud_function_name",
+    }
 
     with pytest.raises(DeployFailed):
         deploy.main()
 
 
-def test_main_true(
-    mocker,
-    gcp_project,
-    cloud_function_directory,
-    credentials,
-    gcp_region,
-    cloud_function_name,
-):
+def test_main_true(mocker):
     os_mock = mocker.patch("plugin_scripts.deploy.os")
     os_mock.path.isdir.return_value = True
+    os_mock.environ = {
+        "debug_mode": "false",
+        "gcp_project": "gcp_project",
+        "cloud_function_directory": "cloud_function_directory",
+        "credentials": "credentials",
+        "gcp_region": "gcp_region",
+        "cloud_function_name": "cloud_function_name",
+    }
 
     mocker.patch("plugin_scripts.deploy._deploy")
     deploy.main()
