@@ -1,10 +1,29 @@
+[![Actions Status](https://github.com/wayfair-incubator/cloud-functions-buildkite-plugin/workflows/Lint/badge.svg?branch=main)](https://github.com/wayfair-incubator/bigquery-buildkite-plugin/actions)
+[![Actions Status](https://github.com/wayfair-incubator/cloud-functions-buildkite-plugin/workflows/Unit%20Tests/badge.svg?branch=main)](https://github.com/wayfair-incubator/bigquery-buildkite-plugin/actions)
+![Version](https://img.shields.io/static/v1.svg?label=Version&message=0.1.1&color=lightgrey&?link=http://left&link=https://github.com/wayfair-incubator/cloud-functions-buildkite-plugin/tree/v0.1.1)
+![Plugin Status](https://img.shields.io/static/v1.svg?label=&message=Buildkite%20Plugin&color=blue&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAMAAADVRocKAAAAk1BMVEX///+DrRik1Cb+/vyErhin1yeAqhfJ5n+dzCO50X2VwiC2zna020vg8LSo1i+q1zTN3qL7/fav2UDT4q33++yXuj3z+eLO6IqMuByJsSPM54XX5bWcvUbH5Xrg6sWiwVHB1ovk7cymxFnq8deOtC2xzG7c6L6/1YfU7JbI2pj2+e+jzzPd763K3J3j8ryRtDbY7aOqCe3pAAACTElEQVRoge3Z11KDQBSAYUpItSRqVGwxEVOwxPd/OndhCbA5BTaLM87sueb83+yMStHz3Lhx48bN/5iw+2VjImy0fDvzQiNCLKVrdjn0nq++QwNCLMy+9uOzc2Y59AZBwF4F55NefxxxyxK4aEvI/C7x/QxglrMTBNxVej6V+QNALh+AhkRY5isAsVwBxFWfM/rnLsu/qnwNQIkawBBy/abMawBCaEAQXGFElt/Evo8CIHEEIESWH9XyAAAQACCIH40A8yBwRICARiB5BNAIBKgQ8tLbCZBHgRqBAgWB5wmgQhCAIt7ekTwJ5AQHSGKC1TkgiM7WIs8A0bBvCETR8H7CA4EhIPP9fgPA7AR53u91BBR53+8EKPPdACLvq3wXQC1vH9DytoGjvF0gGo71vE0gCoC8PQDJ2wJEvgfmbQFo3g5A5HNA3K+eL0yBePdO5AtAEAOUoIB4c+ONiHwBZHddjMCB5DUV6yOqfzgBQWCAzMu9ZoAiHgACBpJdmj3SNAdQAgKSXfFQ1gZQz28PlxxQ5tsCIKED+6/qU2tbQBF3lxgwn9YfitsDR0QVmE9D7bHeBNCIEphf63lToEYUAJQ3BxSxlUQGPD3Cr5DmwIGQJ8DypwHqlXX7gec5oMcAXv5OT31OYU6weuM/9tDv/iSwWnJxfghA5s0+QzUCFi828iiwWNvJI4C9PAg8WcwDAPVLYwGwndeAufV8DZB/bm3nK0A3+RyI81tdF3l1gn1neQlM4qnpp+9ms0xP/P8AP/8778aNGzdu/mh+AQp1NCB/JInXAAAAAElFTkSuQmCC)
+
 # Cloud Functions Buildkite Plugin
 
 This buildkite plugin can be used to deploy code to Cloud Functions
 
 See the [plugin tester](https://github.com/buildkite-plugins/buildkite-plugin-tester) for testing examples and usage, and the (Buildkite docs on writing plugins)[https://buildkite.com/docs/plugins/writing] to understand everything in this repo.
 
-[![Build status](https://badge.buildkite.com/d386e7f164ca1a3164302c7b17dca216c8ddcc8806d20c45db.svg?branch=master)](https://buildkite.com/wayfair/deploy-cloud-functions-buildkite-plugin)
+## Using the plugin
+
+If the version number is not provided then the most recent version of the plugin will be used. Do not use version number as `master` or any branch names.
+
+### Simple
+
+```yaml
+steps:
+  - plugins:
+      - wayfair-incubator/cloud-functions#v0.1.0:
+          gcp_project: "gcp-us-project"
+          gcp_region: "us-central1"
+          cloud_function_name: "function-1"
+          cloud_function_directory: "directory/project"
+```
 
 ## Configuration
 
@@ -43,36 +62,16 @@ env:
   gcp_service_account: '{"email": ""}'
 ```
 
+## Contributing
 
-## Using the plugin
+See the [Contributing Guide](CONTRIBUTING.md) for additional information.
 
-If the version number is not provided then the most recent version of the plugin will be used. Do not use version number as `master` or any branch names.
-
-### Simple
-
-```yaml
-steps:
-  - plugins:
-      - wayfair-incubator/cloud-functions#v0.1.0:
-          gcp_project: "gcp-us-project"
-          gcp_region: "us-central1"
-          cloud_function_name: "function-1"
-          cloud_function_directory: "directory/project"
-```
-
-## Developing
-
-You can use the [bk cli](https://github.com/buildkite/cli) to run the test pipeline locally, or just the tests using Docker Compose directly:
+To execute tests locally (requires that `docker` and `docker-compose` are installed):
 
 ```bash
-docker-compose run --rm test
+docker-compose run py-test
 ```
 
-You can also run linting using Docker Compose directly:
+## Credits
 
-```bash
-docker-compose run --rm lint
-```
-
-# Authors
-`Jash Parekh <jash389@gmail.com>`
+This plugin was originally written by [Jash Parekh](https://github.com/jashparekh) for Wayfair.
