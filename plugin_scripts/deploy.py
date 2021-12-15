@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import zipfile
+from pprint import pformat
 from tempfile import TemporaryFile
 from urllib.parse import urlparse
 
@@ -53,7 +54,7 @@ def _upload_source_code_using_archive_url(archive_url: str, data):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
     blob.upload_from_string(data.read())
-    _logger.info(f"Source code object {blob_name} uploaded to bucket {bucket_name}.")
+    _logger.info(f"Source code object {blob_name} uploaded to bucket {bucket_name}. \n")
 
 
 def _upload_source_code_using_upload_url(upload_url: str, data):
@@ -64,10 +65,10 @@ def _upload_source_code_using_upload_url(upload_url: str, data):
         "x-goog-content-length-range": "0,104857600",
     }
     response: Response = requests.put(upload_url, headers=headers, data=data)
-    _logger.info(f"HTTP Status Code for uploading data: {response.status_code}")
+    _logger.info(f"HTTP Status Code for uploading data: {response.status_code} \n")
 
     if os.environ.get("debug_mode", False):
-        _logger.info(f"Response body: {response.text}")
+        _logger.info(f"Response body: {pformat(response.json)} \n")
 
 
 def _validate_env_variables():
@@ -100,7 +101,7 @@ def _validate_if_path_exists():
 
 def _handle_exception(e, debug_mode):
     if debug_mode:
-        _logger.info(f"HTTP Status Code for patching Function: {str(e)}")
+        _logger.info(f"HTTP Status Code for patching Function: {str(e)} \n")
 
 
 def _deploy():
@@ -123,6 +124,9 @@ def _deploy():
         # check if cloud function exists, if it exists execution continues as is otherwise it will raise an exception
         function = cloud_functions.get(name=function_path).execute()
 
+        if debug_mode:
+            _logger.info(f"Function Definition: {pformat(function)} \n")
+
         with TemporaryFile() as data:
             file_handler = zipfile.ZipFile(data, mode="w")
             _zip_directory(file_handler)
@@ -144,11 +148,11 @@ def _deploy():
             response = cloud_functions.patch(
                 name=function_path, body=function
             ).execute()
-            _logger.info("Successfully patched Cloud Function.")
-            _logger.info(f"Operation Name: {response['name']}")
+            _logger.info("Successfully patched Cloud Function. \n")
+            _logger.info(f"Operation Name: {response['name']} \n")
 
             if debug_mode:
-                _logger.info(f"Response: {response}")
+                _logger.info(f"Response: {pformat(response)}")
         except Exception as e:
             deploy_failed = True
             _handle_exception(e, debug_mode)
