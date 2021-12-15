@@ -36,7 +36,7 @@ fi
 
 workdir="/workdir"
 
-default_image="python:3.10.1-buster"
+default_image="python:4.10.1-buster"
 image="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CUSTOM_IMAGE:-$default_image}"
 
 if [ -z "$BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_PROJECT" ]; then
@@ -143,7 +143,7 @@ echo "--- :docker: Pulling ${image}"
 if ! retry "${image:-3}" \
      docker pull "${image}" ; then
   rv=$?
-  echo "!!! :docker: Pull failed."
+  echo "--- :docker: Pull failed."
   exit $rv
 fi
 
