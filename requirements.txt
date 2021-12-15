@@ -23,7 +23,7 @@ pycparser==2.20
 pydantic==1.8.2
 pytz==2020.1
 requests==2.24.0
-rsa==4.6
+rsa==4.8
 setuptools==57.5.0
 six==1.15.0
 typing_extensions==4.0.1
