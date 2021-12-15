@@ -117,6 +117,14 @@ command_string="$(
 args+=("${command_string}")
 display_command+=("'${command_string}'")
 
+echo "--- :docker: Pulling ${image}"
+if ! retry "${image:-3}" \
+     docker pull "${image}" ; then
+  rv=$?
+  echo "!!! :docker: Pull failed."
+  exit $rv
+fi
+
 echo '--- :docker: Logging "docker create" command'
 echo "$ docker create" >&2
 
