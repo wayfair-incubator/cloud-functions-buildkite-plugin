@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import zipfile
+from pprint import pformat
 from tempfile import TemporaryFile
 from urllib.parse import urlparse
 
@@ -124,7 +125,7 @@ def _deploy():
         function = cloud_functions.get(name=function_path).execute()
 
         if debug_mode:
-            _logger.info(f"Function Definition: {function}")
+            _logger.info(f"Function Definition: {pformat(function)}")
 
         with TemporaryFile() as data:
             file_handler = zipfile.ZipFile(data, mode="w")
@@ -151,7 +152,7 @@ def _deploy():
             _logger.info(f"Operation Name: {response['name']}")
 
             if debug_mode:
-                _logger.info(f"Response: {response}")
+                _logger.info(f"Response: {pformat(response)}")
         except Exception as e:
             deploy_failed = True
             _handle_exception(e, debug_mode)
