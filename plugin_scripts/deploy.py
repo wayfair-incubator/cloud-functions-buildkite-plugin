@@ -65,10 +65,10 @@ def _upload_source_code_using_upload_url(upload_url: str, data):
         "x-goog-content-length-range": "0,104857600",
     }
     response: Response = requests.put(upload_url, headers=headers, data=data)
-    _logger.info(f"HTTP Status Code for uploading data: {response.status_code}")
+    _logger.info(f"HTTP Status Code for uploading data: {response.status_code} \n")
 
     if os.environ.get("debug_mode", False):
-        _logger.info(f"Response body: {response.text}")
+        _logger.info(f"Response body: {pformat(response.json)} \n")
 
 
 def _validate_env_variables():
