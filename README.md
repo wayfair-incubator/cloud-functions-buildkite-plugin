@@ -65,7 +65,7 @@ steps:
 You can use the [bk cli](https://github.com/buildkite/cli) to run the test pipeline locally, or just the tests using Docker Compose directly:
 
 ```bash
-docker-compose run --rm test
+docker-compose run --rm py-test
 ```
 
 You can also run linting using Docker Compose directly:
