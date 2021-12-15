@@ -18,7 +18,7 @@ If the version number is not provided then the most recent version of the plugin
 ```yaml
 steps:
   - plugins:
-      - wayfair-incubator/cloud-functions#v0.1.0:
+      - wayfair-incubator/cloud-functions#v0.1.1:
           gcp_project: "gcp-us-project"
           gcp_region: "us-central1"
           cloud_function_name: "function-1"
