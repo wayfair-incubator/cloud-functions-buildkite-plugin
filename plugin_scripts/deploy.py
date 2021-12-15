@@ -123,6 +123,9 @@ def _deploy():
         # check if cloud function exists, if it exists execution continues as is otherwise it will raise an exception
         function = cloud_functions.get(name=function_path).execute()
 
+        if debug_mode:
+            _logger.info(f"Function Definition: {function}")
+
         with TemporaryFile() as data:
             file_handler = zipfile.ZipFile(data, mode="w")
             _zip_directory(file_handler)

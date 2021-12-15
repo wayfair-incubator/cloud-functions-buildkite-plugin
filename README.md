@@ -30,7 +30,7 @@ Example: `function-1`
 
 ### `cloud_function_directory` (required, string)
 
-The directory in your repository where are you storing the schemas for your tables and views.
+The directory in your repository where are you storing the code files for cloud function.
 
 Example: `wf-gcp-project/function-1`
 
