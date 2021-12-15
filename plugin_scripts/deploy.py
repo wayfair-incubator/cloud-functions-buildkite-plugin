@@ -54,7 +54,7 @@ def _upload_source_code_using_archive_url(archive_url: str, data):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
     blob.upload_from_string(data.read())
-    _logger.info(f"Source code object {blob_name} uploaded to bucket {bucket_name}.")
+    _logger.info(f"Source code object {blob_name} uploaded to bucket {bucket_name}. \n")
 
 
 def _upload_source_code_using_upload_url(upload_url: str, data):
