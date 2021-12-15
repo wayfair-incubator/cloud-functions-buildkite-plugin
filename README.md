@@ -7,7 +7,7 @@
 
 This buildkite plugin can be used to deploy code to Cloud Functions
 
-See the [plugin tester](https://github.com/buildkite-plugins/buildkite-plugin-tester) for testing examples and usage, and the (Buildkite docs on writing plugins)[https://buildkite.com/docs/plugins/writing] to understand everything in this repo.
+See the [plugin tester](https://github.com/buildkite-plugins/buildkite-plugin-tester) for testing examples and usage, and the [Buildkite docs on writing plugins](https://buildkite.com/docs/plugins/writing) to understand everything in this repo.
 
 ## Using the plugin
 
