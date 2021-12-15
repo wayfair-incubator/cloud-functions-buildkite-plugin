@@ -101,7 +101,7 @@ def _validate_if_path_exists():
 
 def _handle_exception(e, debug_mode):
     if debug_mode:
-        _logger.info(f"HTTP Status Code for patching Function: {str(e)}")
+        _logger.info(f"HTTP Status Code for patching Function: {str(e)} \n")
 
 
 def _deploy():
@@ -125,7 +125,7 @@ def _deploy():
         function = cloud_functions.get(name=function_path).execute()
 
         if debug_mode:
-            _logger.info(f"Function Definition: {pformat(function)}")
+            _logger.info(f"Function Definition: {pformat(function)} \n")
 
         with TemporaryFile() as data:
             file_handler = zipfile.ZipFile(data, mode="w")
@@ -148,8 +148,8 @@ def _deploy():
             response = cloud_functions.patch(
                 name=function_path, body=function
             ).execute()
-            _logger.info("Successfully patched Cloud Function.")
-            _logger.info(f"Operation Name: {response['name']}")
+            _logger.info("Successfully patched Cloud Function. \n")
+            _logger.info(f"Operation Name: {response['name']} \n")
 
             if debug_mode:
                 _logger.info(f"Response: {pformat(response)}")
