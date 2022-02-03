@@ -16,7 +16,7 @@ google-resumable-media==2.1.0
 googleapis-common-protos==1.54.0
 grpcio==1.43.0
 grpcio-status==1.43.0
-httplib2==0.20.2
+httplib2==0.20.4
 idna==3.3
 packaging==21.3
 pip==22.0.2
