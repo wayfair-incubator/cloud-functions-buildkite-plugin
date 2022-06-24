@@ -5,13 +5,13 @@
 
 # Cloud Functions Buildkite Plugin
 
-This buildkite plugin can be used to deploy code to Cloud Functions
+This buildkite plugin can be used to deploy code to [Cloud Functions](https://cloud.google.com/functions)
 
 See the [plugin tester](https://github.com/buildkite-plugins/buildkite-plugin-tester) for testing examples and usage, and the [Buildkite docs on writing plugins](https://buildkite.com/docs/plugins/writing) to understand everything in this repo.
 
 ## Using the plugin
 
-If the version number is not provided then the most recent version of the plugin will be used. Do not use version number as `master` or any branch names.
+If the version number is not provided then the most recent version of the plugin will be used. Do not use version number as `main` or any branch name.
 
 ### Simple
 
@@ -31,7 +31,7 @@ steps:
 
 ### `gcp_project` (required, string)
 
-The name of the GCP project you want to deploy.
+The name of the GCP project you want to deploy to.
 
 Example: `gcp-us-project`
 
@@ -49,13 +49,13 @@ Example: `function-1`
 
 ### `cloud_function_directory` (required, string)
 
-The directory in your repository where are you storing the code files for cloud function.
+The directory in your repository where you are storing the code files for the cloud function.
 
 Example: `directory/function-code`
 
 ## Secret
 
-This plugin expects `GCP_SERVICE_ACCOUNT` is placed as environment variable. Make sure to store it [securely](https://buildkite.com/docs/pipelines/secrets)!
+This plugin expects `GCP_SERVICE_ACCOUNT` is placed as an environment variable. Make sure to store it [securely](https://buildkite.com/docs/pipelines/secrets)!
 
 ```yaml
 env:
