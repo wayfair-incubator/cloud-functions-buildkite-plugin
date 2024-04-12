@@ -18,7 +18,7 @@ googleapis-common-protos==1.56.3
 grpcio==1.47.0
 grpcio-status==1.47.0
 httplib2==0.20.4
-idna==3.3
+idna==3.7
 numpy==1.23.0
 packaging==21.3
 pip==22.0.4
