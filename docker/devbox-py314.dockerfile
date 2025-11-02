@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 ARG _USER="lilchz"
 ARG _UID="1001"
@@ -36,3 +36,4 @@ RUN uv pip install --system -r requirements.txt -r requirements-test.txt
 USER ${_USER}
 
 CMD bash
+

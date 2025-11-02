@@ -4,12 +4,12 @@
     "renovate/{{depName}}"
   ],
   "extends": [
-    "config:base",
+    "config:recommended",
     "schedule:earlyMondays",
     ":dependencyDashboard",
     ":rebaseStalePrs"
   ],
-   "enabledManagers": [
+  "enabledManagers": [
     "docker-compose",
     "github-actions",
     "pip_requirements"

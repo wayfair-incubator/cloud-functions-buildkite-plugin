@@ -1,0 +1,143 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cloud-functions-buildkite-plugin"
+version = "0.2.0"
+description = "Buildkite plugin for deploying code to Google Cloud Functions"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "Jash Parekh", email = "jashparekh@wayfair.com"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "cachetools>=5.5.0",
+    "certifi>=2024.8.30",
+    "cffi>=1.17.1",
+    "chardet>=5.2.0",
+    "charset-normalizer>=3.4.0",
+    "gbq>=0.5.0",
+    "google-api-core>=2.23.0",
+    "google-api-python-client>=2.154.0",
+    "google-auth>=2.37.0",
+    "google-auth-httplib2>=0.2.0",
+    "google-cloud-bigquery>=3.27.0",
+    "google-cloud-bigquery-storage>=2.27.0",
+    "google-cloud-core>=2.4.1",
+    "google-cloud-storage>=2.19.0",
+    "google-crc32c>=1.6.0",
+    "google-resumable-media>=2.7.2",
+    "googleapis-common-protos>=1.66.0",
+    "grpcio>=1.68.1",
+    "grpcio-status>=1.68.1",
+    "httplib2>=0.22.0",
+    "idna>=3.10",
+    "numpy>=2.2.0",
+    "packaging>=24.2",
+    "proto-plus>=1.25.0",
+    "protobuf>=5.29.2",
+    "pyarrow>=18.1.0",
+    "pyasn1>=0.6.1",
+    "pyasn1-modules>=0.4.1",
+    "pycparser>=2.22",
+    "pydantic>=2.10.3",
+    "pyparsing>=3.2.0",
+    "python-dateutil>=2.9.0",
+    "pytz>=2024.2",
+    "requests>=2.32.3",
+    "rsa>=4.9",
+    "setuptools>=75.6.0",
+    "six>=1.17.0",
+    "typing-extensions>=4.12.2",
+    "uritemplate>=4.1.1",
+    "urllib3>=2.2.3",
+    "wheel>=0.45.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8.4",
+    "mypy>=1.13.0",
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "pytest-mock>=3.14.0",
+    "types-requests>=2.32.0.20241016",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"  # Can also target py314 when available
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "S",    # flake8-bandit (security)
+    "C4",   # flake8-comprehensions
+    "PTH",  # flake8-use-pathlib
+    "W",    # pycodestyle warnings
+]
+ignore = [
+    "S101",   # Use of assert (allow in tests)
+    "N818",   # Exception name should end with Error (legacy exceptions)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",   # Allow asserts in tests
+]
+
+[tool.mypy]
+python_version = "3.13"  # Compatible with 3.13 and 3.14
+ignore_missing_imports = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+addopts = [
+    "--verbose",
+    "--cov=plugin_scripts",
+    "--cov-report=xml",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+source = ["plugin_scripts"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@overload",
+]
+
