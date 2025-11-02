@@ -73,7 +73,7 @@ This project uses modern Python tooling for fast, efficient development:
 
 ### Requirements
 
-- Docker and docker-compose
+- Docker and Docker Compose (v2 recommended: `docker compose` or legacy v1: `docker-compose`)
 - Python 3.13 or 3.14 (for local development without Docker)
 - [uv](https://github.com/astral-sh/uv) (optional, for local development)
 
@@ -236,10 +236,11 @@ See the [Contributing Guide](CONTRIBUTING.md) for additional information.
 
 ### Running Tests Locally
 
-To execute tests locally (requires that `docker` and `docker-compose` are installed):
+To execute tests locally (requires that `docker` and Docker Compose are installed):
 
 ```bash
-docker-compose run --rm py-test
+docker compose run --rm py-test
+# Or with legacy v1: docker-compose run --rm py-test
 ```
 
 ### Code Style

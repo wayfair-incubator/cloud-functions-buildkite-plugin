@@ -13,14 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker-compose run --rm shfmt
+      - run: docker compose run --rm shfmt
 
   lint:
     name: Lint bash and markdown
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker-compose run --rm lint
+      - run: docker compose run --rm lint
 
   ruff:
     name: Ruff (linting and formatting)
