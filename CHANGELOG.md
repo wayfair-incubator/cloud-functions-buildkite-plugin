@@ -6,65 +6,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Security (CRITICAL)
-
-- **CRITICAL FIX**: Secure credential handling in Buildkite plugin hook
-  - Replaced predictable `/tmp/service_account.json` with secure `mktemp`
-  - Set restrictive file permissions (600) on credential files
-  - Added proper cleanup trap handlers (EXIT, ERR, INT, TERM)
-  - Eliminated symlink attack vulnerability
-  - Fixed race condition when multiple builds run simultaneously
-  - Credentials no longer visible to all users on the system
-
-### Changed (Breaking)
-
-- **BREAKING**: Updated Buildkite hook to use Python 3.13-slim image (was 3.10.1-buster)
-  - Plugin now requires Python 3.13+ compatible environments
-  - Updated default Docker image from `python:3.10.1-buster` to `python:3.13-slim`
-- **BREAKING**: GitHub Actions now require Python 3.13 or 3.14
-  - CI/CD pipelines updated to test against Python 3.13 and 3.14 only
-  - Dropped support for Python 3.7, 3.8, 3.9, 3.10 (all EOL or deprecated)
-
-### Updated
-
-**GitHub Actions**:
-- `actions/checkout`: v3 → v4
-- `actions/setup-python`: v4 → v5 (with prerelease support for Python 3.14)
-- `actions/upload-artifact`: v3 → v4
-- `codecov/codecov-action`: v3.1.1 → v4
-- `suzuki-shunsuke/github-action-renovate-config-validator`: v0.1.2 → v1.0.1
-
-**GitHub Workflows**:
-- Consolidated 5 separate linting jobs (black, isort, flake8, bandit, mypy) into 2 jobs (ruff, mypy)
-- Added matrix testing for Python 3.13 and 3.14
-- All workflows now use uv for dependency installation (10-100x faster)
-
-**Buildkite Hook (`hooks/command`)**:
-- Updated to use uv for package installation
-- Command now: `pip install uv && uv pip install --system -r plugin_scripts/requirements.lock`
-- Added detailed debug output for credential file path
-
-**GitHub Actions Install Script**:
-- `.github/actions/install-dependencies/action.sh` now uses uv instead of pip
-- Installs uv via official install script
-- Significantly faster CI/CD runs
-
-### Fixed
-
-- Fixed outdated `requirements.lock` file
-  - Updated from ancient versions (e.g., protobuf 3.20.1 → 5.29.2)
-  - Now matches updated `requirements.txt` specifications
-  - Uses `>=` version specifiers for flexibility
-- Fixed GitHub Actions using deprecated Python versions
-- Fixed GitHub Actions using outdated action versions
-
-### Development
-
-- CI/CD now 10-100x faster with uv for dependency installation
-- Linting consolidated from 5 jobs to 2 (ruff + mypy)
-- GitHub Actions test matrix now includes Python 3.13 and 3.14
-- Added `allow-prereleases: true` for Python 3.14 testing
-
 ## [v0.2.0] - 2025-11-02
 
 ### Changed (Breaking)
