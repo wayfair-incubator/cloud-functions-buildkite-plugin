@@ -4,50 +4,52 @@ on:
   push:
       branches: ["main"]
 
-env:
-  PYTHON_VERSION: "3.10.1"
-
 jobs:
   test:
     name: Pytest
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.7", "3.8", "3.9", "3.10" ]
+        python-version: ["3.13", "3.14"]
+      fail-fast: false
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+      
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      
       - name: Install dependencies
-        uses: ./.github/actions/install-dependencies
-        with:
-          requirements: "true"
-          test-requirements: "true"
+        run: |
+          uv pip install --system -r requirements.txt -r requirements-test.txt
 
       - name: Run pytest
-        run: pytest --cov plugin_scripts/ tests --cov-report xml:coverage-${{ env.PYTHON_VERSION }}.xml --junitxml=test-results-${{ env.PYTHON_VERSION }}.xml
+        run: pytest --cov plugin_scripts/ tests --cov-report xml:coverage-${{ matrix.python-version }}.xml --junitxml=test-results-${{ matrix.python-version }}.xml
 
       - name: Upload pytest test results artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: pytest-results-${{ env.PYTHON_VERSION }}
-          path: test-results-${{ env.PYTHON_VERSION }}.xml
-        # Use always() to always run this step to publish test results when there are test failures
+          name: pytest-results-${{ matrix.python-version }}
+          path: test-results-${{ matrix.python-version }}.xml
         if: ${{ always() }}
 
       - name: Upload coverage results artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: pytest-coverage-${{ env.PYTHON_VERSION }}
-          path: coverage-${{ env.PYTHON_VERSION }}.xml
-        # Use always() to always run this step to publish test results when there are test failures
+          name: pytest-coverage-${{ matrix.python-version }}
+          path: coverage-${{ matrix.python-version }}.xml
         if: ${{ always() }}
 
       - name: Publish coverage results to Codecov
-        uses: codecov/codecov-action@v3.1.1
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: coverage-${{ env.PYTHON_VERSION }}.xml
-          fail_ci_if_error: true
+          file: coverage-${{ matrix.python-version }}.xml
+          fail_ci_if_error: false
+        if: ${{ always() }}

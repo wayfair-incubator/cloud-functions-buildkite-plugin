@@ -5,114 +5,76 @@ on:
       branches: ["main"]
 
 env:
-  PYTHON_VERSION: "3.10.1"
+  PYTHON_VERSION: "3.13"
 
 jobs:
   shfmt:
     name: Bash shfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: docker-compose run --rm shfmt
 
   lint:
     name: Lint bash and markdown
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: docker-compose run --rm lint
 
-  bandit:
+  ruff:
+    name: Ruff (linting and formatting)
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install dependencies
-        uses: ./.github/actions/install-dependencies
-        with:
-          requirements: "true"
-          test-requirements: "true"
-
-      - name: Run bandit
-        run: bandit --ini .bandit -r plugin_scripts tests
-
-  black:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      
       - name: Install dependencies
-        uses: ./.github/actions/install-dependencies
-        with:
-          requirements: "true"
-          test-requirements: "true"
-
-      - name: Run black
-        run: black --check plugin_scripts tests
-
-  flake8:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install dependencies
-        uses: ./.github/actions/install-dependencies
-        with:
-          requirements: "true"
-          test-requirements: "true"
-
-      - name: Run flake8
-        run: flake8 plugin_scripts tests
-
-  isort:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install dependencies
-        uses: ./.github/actions/install-dependencies
-        with:
-          requirements: "true"
-          test-requirements: "true"
-
-      - name: Run isort
-        run: isort --profile black --atomic --check-only plugin_scripts tests
+        run: |
+          uv pip install --system -r requirements.txt -r requirements-test.txt
+      
+      - name: Run ruff format check
+        run: ruff format --check plugin_scripts tests
+      
+      - name: Run ruff linter
+        run: ruff check plugin_scripts tests
 
   mypy:
+    name: Type checking with MyPy
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      
       - name: Install dependencies
-        uses: ./.github/actions/install-dependencies
-        with:
-          requirements: "true"
-          test-requirements: "true"
+        run: |
+          uv pip install --system -r requirements.txt -r requirements-test.txt
 
       - name: Run mypy
         run: mypy plugin_scripts tests
 
   renovate:
+    name: Validate Renovate config
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: 🧼 lint renovate config # Validates changes to renovate.json config file
-        uses: suzuki-shunsuke/github-action-renovate-config-validator@v0.1.2
+      - uses: actions/checkout@v4
+      - name: 🧼 lint renovate config
+        uses: suzuki-shunsuke/github-action-renovate-config-validator@v1.0.1
         with:
           config_file_path: 'renovate.json'

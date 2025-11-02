@@ -1,5 +1,3 @@
-version: '3.5'
-
 services:
   test:
     image: "buildkite/plugin-tester"
@@ -40,11 +38,55 @@ services:
     volumes:
       - "./:/app"
 
-  # run all the tests and linting locally
-  # - black & isort will format code to address issues
+  # Python 3.14 development box (when available)
+  devbox-py314:
+    build:
+      dockerfile: "./docker/devbox-py314.dockerfile"
+      context: "."
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    volumes:
+      - "./:/app"
+
+  # Run all the tests and linting locally
   py-test:
     <<: *devbox
     command: "docker/run_tests.sh --format-code"
+    volumes:
+      - "./:/app"
+
+  # Run ruff linter (check mode)
+  ruff-check:
+    <<: *devbox
+    command: "ruff check plugin_scripts tests"
+    volumes:
+      - "./:/app"
+
+  # Run ruff linter (fix mode)
+  ruff-lint:
+    <<: *devbox
+    command: "ruff check --fix plugin_scripts tests"
+    volumes:
+      - "./:/app"
+
+  # Run ruff formatter (check mode)
+  ruff-format-check:
+    <<: *devbox
+    command: "ruff format --check plugin_scripts tests"
+    volumes:
+      - "./:/app"
+
+  # Run ruff formatter (format mode)
+  ruff-format:
+    <<: *devbox
+    command: "ruff format plugin_scripts tests"
+    volumes:
+      - "./:/app"
+
+  # Run mypy type checking
+  mypy:
+    <<: *devbox
+    command: "mypy plugin_scripts tests"
     volumes:
       - "./:/app"
 
