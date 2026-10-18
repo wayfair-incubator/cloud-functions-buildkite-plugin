@@ -310,3 +310,31 @@ def test__upload_source_code_using_upload_url_failure(mocker, credentials):
             "https://example.com/upload", debug_mode=False, data=mock_data
         )
     assert "Failed to upload source code" in str(exec_info.value)
+
+
+def test_zip_directory_skips_secrets_and_build_leftovers(tmp_path, monkeypatch):
+    """Version control data, .env files and caches are never uploaded."""
+    import io
+    import zipfile
+
+    (tmp_path / "pkg" / "__pycache__").mkdir(parents=True)
+    (tmp_path / "pkg" / "__pycache__" / "m.cpython-313.pyc").write_bytes(b"x")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text("[core]")
+    (tmp_path / "node_modules" / "dep").mkdir(parents=True)
+    (tmp_path / "node_modules" / "dep" / "index.js").write_text("")
+    (tmp_path / ".env").write_text("KEY=value")
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / ".env.production").write_text("KEY=value")
+    (tmp_path / "stale.pyc").write_bytes(b"x")
+    (tmp_path / "pkg" / "b.py").write_text("")
+    (tmp_path / "pkg" / "a.py").write_text("")
+    (tmp_path / "main.py").write_text("")
+    monkeypatch.setenv("cloud_function_directory", str(tmp_path))
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as handler:
+        deploy._zip_directory(handler)
+
+    # sorted, so the archive is reproducible
+    assert zipfile.ZipFile(buffer).namelist() == ["main.py", "pkg/a.py", "pkg/b.py"]

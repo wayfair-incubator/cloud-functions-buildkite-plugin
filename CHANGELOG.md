@@ -8,17 +8,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- The service account key is no longer written to a temporary file or put on the `docker create`
+  command line (visible in `ps` and `docker inspect`); it is passed to Docker by variable name only.
+- **BREAKING (behaviour):** the container no longer receives the whole job environment
+  (`BUILDKITE_ENV_FILE`), the agent access token or the `buildkite-agent` binary; none of them was
+  used. Only proxy variables are forwarded. `buildkite-agent` no longer has to be on the agent's `PATH`.
+- **BREAKING (behaviour):** the uploaded archive no longer contains `.git`, `node_modules`,
+  `__pycache__`, `*.pyc`, `.env`, `.env.*` or `.DS_Store`, so local secrets are not uploaded. Files
+  are added in sorted order.
+- Debug mode no longer logs the full function definition (it can contain environment variables);
+  only name, status, runtime, entry point and update time.
+- `uv` is pinned (`uv==0.13.1`) instead of installing whatever is latest.
 - Workflows run with `permissions: contents: read`, checkouts no longer persist the token, and
   every action is pinned by full commit SHA. The `curl | sh` installers of `uv` are replaced by
   `astral-sh/setup-uv` with `uv` pinned to 0.13.1; the unused composite action that used one is removed.
 
 ### Fixed
 
+- A failed `docker pull` now fails the step (it exited 0 silently).
+- The deploy container is removed on every exit path, also when `docker cp` fails.
+- Missing options now give the intended `ERROR: ... not set` message instead of
+  `unbound variable`.
+- `gcp_service_account` can be given as the plugin option (declared in `plugin.yml` but ignored
+  until now) as well as the environment variable.
+- `custom_image`, `debug_mode` and `docker_pull_retries` are now declared in `plugin.yml` and
+  documented.
+- Debug mode logged the method `Response.json` instead of the upload response body.
+- The container is no longer started with `-it`/`--rm` (no TTY exists on agents).
 - The `Bash shfmt` check failed on every pull request (`shfmt@latest` needs a newer Go than the
   builder image): shfmt is pinned to v3.14.1 and built with Go 1.27, and it now fails when a file
   is not formatted (`-s -d`; it used to rewrite the files and always pass).
 - `codecov/codecov-action` was given an `file` input that does not exist; it is `files`.
 - `buildkite/plugin-tester` and `plugin-linter` are pinned in `docker-compose.yaml`.
+
+### Added
+
+- `tests/command.bats`: tests of the hook with a stub `docker` (it had none), run in CI as
+  `Bats (hooks/command)`.
 
 ### Changed
 
