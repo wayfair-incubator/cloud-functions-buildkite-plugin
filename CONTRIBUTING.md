@@ -28,6 +28,13 @@ has been discussed in the past, or if the change was already implemented but not
 We expect new pull requests to include tests for any affected behavior, and, as we follow semantic versioning, we may
 reserve breaking changes until the next major version release.
 
+## Dependency updates
+
+Dependencies are updated by [Renovate](https://docs.renovatebot.com/) (`renovate.json`); there is no
+Dependabot. After changing a dependency, refresh both lock files with
+`docker compose run --rm lock-requirements` (or `uv lock` followed by the `uv export` command in
+`docker/lock_requirements.sh`): CI fails when `uv.lock` or `plugin_scripts/requirements.lock` is stale.
+
 ## Other Ways to Contribute
 
 We welcome anyone that wants to contribute to `cloud-functions-buildkite-plugin` to triage and reply to open issues to help troubleshoot
