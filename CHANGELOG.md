@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Updated the locked dependencies; `pip-audit` reported 33 advisories in 9 packages
+  (urllib3, requests, protobuf, pyasn1, setuptools, wheel, idna, httplib2, pyarrow) and now
+  reports none.
 - The service account key is no longer written to a temporary file or put on the `docker create`
   command line (visible in `ps` and `docker inspect`); it is passed to Docker by variable name only.
 - **BREAKING (behaviour):** the container no longer receives the whole job environment
@@ -22,6 +25,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Workflows run with `permissions: contents: read`, checkouts no longer persist the token, and
   every action is pinned by full commit SHA. The `curl | sh` installers of `uv` are replaced by
   `astral-sh/setup-uv` with `uv` pinned to 0.13.1; the unused composite action that used one is removed.
+
+### Changed
+
+- **BREAKING: the default deploy image is now `python:3.15-slim`** (was `python:3.13-slim`).
+  Set `custom_image: python:3.13-slim` to keep the old one.
+- **Python 3.11 to 3.15 are supported and tested** (was 3.13 and 3.14); 3.10 is end of life.
+- Dependencies are managed with uv: `[dependency-groups]` in `pyproject.toml` and a committed,
+  universal `uv.lock`. `requirements.txt`, `requirements-test.txt` and the 3.14 devbox are removed;
+  CI uses `uv sync --locked`, and a CI job fails when `uv.lock` or the container lock is stale.
+- The deploy container installs only what the plugin imports: 26 packages instead of 45. The unused
+  `gbq`, `google-cloud-bigquery(-storage)`, `pyarrow`, `numpy`, `pydantic`, `grpcio`, `setuptools`,
+  `wheel` and others (left over from the BigQuery plugin) are gone, so every run is faster.
+- `plugin_scripts/requirements.lock` is exported from `uv.lock` with hashes and installed with
+  `uv pip install --require-hashes`. The devbox copies uv from a digest-pinned image.
+- GitHub Actions updated: `actions/checkout` v7.0.1, `actions/setup-python` v7.0.0,
+  `actions/upload-artifact` v7.0.2, `codecov/codecov-action` v7.1.1 and
+  `github-action-renovate-config-validator` v2.4.1 (supersedes the open Renovate PRs).
 
 ### Fixed
 
@@ -45,12 +65,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `tests/command.bats`: tests of the hook with a stub `docker` (it had none), run in CI as
   `Bats (hooks/command)`.
-
-### Changed
-
-- GitHub Actions updated: `actions/checkout` v7.0.1, `actions/setup-python` v7.0.0,
-  `actions/upload-artifact` v7.0.2, `codecov/codecov-action` v7.1.1 and
-  `github-action-renovate-config-validator` v2.4.1 (supersedes the open Renovate PRs).
 
 ## [v0.2.0] - 2025-11-02
 

@@ -125,4 +125,11 @@ teardown() {
   [ "$status" -eq 0 ]
   grep -qx -- "python:3.12-slim" "${DOCKER_LOG}.create"
   grep -q "uv==[0-9]" "${DOCKER_LOG}.create"
+  grep -q -- "--require-hashes" "${DOCKER_LOG}.create"
+}
+
+@test "the default image is python 3.15" {
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "python:3.15-slim" "${DOCKER_LOG}.create"
 }

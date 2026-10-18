@@ -90,52 +90,24 @@ Everything in `cloud_function_directory` except `.git`, `node_modules`, `__pycac
 
 ## Development
 
-This project uses modern Python tooling for fast, efficient development:
-
-- **Python 3.13+**: Latest stable Python versions (3.13 and 3.14 supported)
-- **uv**: Fast Python package installer (10-100x faster than pip)
-- **Ruff**: Unified linter and formatter (10-100x faster than black/flake8/isort)
-- **Docker**: Consistent development environment
+This project uses [uv](https://github.com/astral-sh/uv) for dependencies (`pyproject.toml` and the committed `uv.lock`), Ruff for linting and formatting, and Docker for a consistent environment.
 
 ### Requirements
 
-- Docker and Docker Compose (v2 recommended: `docker compose` or legacy v1: `docker-compose`)
-- Python 3.13 or 3.14 (for local development without Docker)
-- [uv](https://github.com/astral-sh/uv) (optional, for local development)
+- Docker and Docker Compose
+- Python 3.11 to 3.15 and [uv](https://github.com/astral-sh/uv) (for local development without Docker)
 
 ### Quick Start
 
 ```bash
-# Build the development container (Python 3.13)
-docker-compose build
-
-# Or build Python 3.14 container (when Python 3.14 is released)
-docker-compose build devbox-py314
+# Build the development container (Python 3.15)
+docker compose build devbox
 
 # Run all tests and linting
-docker-compose run --rm py-test
-
-# Format code automatically
-docker-compose run --rm ruff-format
-
-# Run linter with auto-fix
-docker-compose run --rm ruff-lint
+docker compose run --rm py-test
 ```
 
-### Testing with Python 3.14
-
-When Python 3.14 is officially released, you can test your code against it:
-
-```bash
-# Build Python 3.14 container
-docker-compose build devbox-py314
-
-# Run tests in Python 3.14
-docker-compose run --rm devbox-py314 pytest
-
-# Open interactive shell with Python 3.14
-docker-compose run --rm devbox-py314
-```
+The plugin's code is tested on Python 3.11, 3.12, 3.13, 3.14 and 3.15 in CI. The deploy container uses `python:3.15-slim` by default (`custom_image` overrides it).
 
 ### Development Commands
 
@@ -143,52 +115,53 @@ docker-compose run --rm devbox-py314
 
 ```bash
 # Run all tests with coverage
-docker-compose run --rm py-test
+docker compose run --rm py-test
 
 # Run tests with formatting (formats code before running tests)
-docker-compose run --rm py-test --format-code
+docker compose run --rm py-test --format-code
 
-# Run tests locally (requires Python 3.13 and dependencies)
-pytest --cov plugin_scripts tests --cov-report html
+# Run tests locally
+uv run pytest --cov plugin_scripts tests --cov-report html
 ```
 
 #### Code Quality
 
 ```bash
 # Format code with Ruff
-docker-compose run --rm ruff-format
+docker compose run --rm ruff-format
 
 # Check formatting (without modifying files)
-docker-compose run --rm ruff-format-check
+docker compose run --rm ruff-format-check
 
 # Run linter and auto-fix issues
-docker-compose run --rm ruff-lint
+docker compose run --rm ruff-lint
 
 # Run linter in check mode (no fixes)
-docker-compose run --rm ruff-check
+docker compose run --rm ruff-check
 
 # Run type checking with mypy
-docker-compose run --rm mypy
+docker compose run --rm mypy
 ```
 
 #### Dependency Management
 
 ```bash
-# Lock requirements (creates requirements.lock file)
-docker-compose run --rm lock-requirements
+# Install the locked dependencies, including the dev tools
+uv sync --locked
 
-# Install dependencies locally with uv (fast!)
-uv pip install --system -r requirements.txt -r requirements-test.txt
-
-# Install dependencies locally with pip
-pip install -r requirements.txt -r requirements-test.txt
+# Add or change a dependency, then refresh uv.lock and the hashed
+# plugin_scripts/requirements.lock that the deploy container installs
+docker compose run --rm lock-requirements          # or: uv lock && uv export ...
+docker compose run --rm lock-requirements --upgrade # move every pin to its latest release
 ```
+
+CI fails when `uv.lock` or `plugin_scripts/requirements.lock` is out of date.
 
 #### Interactive Development
 
 ```bash
 # Start an interactive shell in the container
-docker-compose run --rm devbox
+docker compose run --rm devbox
 
 # Inside the container, you can:
 #   - Run pytest
@@ -199,26 +172,13 @@ docker-compose run --rm devbox
 
 ### Local Development (without Docker)
 
-If you prefer to develop without Docker:
-
 ```bash
-# Install uv (https://github.com/astral-sh/uv)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync --locked
 
-# Install dependencies
-uv pip install -r requirements.txt -r requirements-test.txt
-
-# Run tests
-pytest --cov plugin_scripts tests --cov-report html
-
-# Format code
-ruff format plugin_scripts tests
-
-# Lint code
-ruff check --fix plugin_scripts tests
-
-# Type check
-mypy plugin_scripts tests
+uv run pytest
+uv run ruff format plugin_scripts tests
+uv run ruff check --fix plugin_scripts tests
+uv run mypy plugin_scripts tests
 ```
 
 ### Project Structure
@@ -240,8 +200,7 @@ cloud-functions-buildkite-plugin/
 ├── hooks/                   # Buildkite plugin hooks
 │   └── command             # Main plugin command
 ├── pyproject.toml          # All tool configurations
-├── requirements.txt        # Production dependencies
-├── requirements-test.txt   # Development dependencies
+├── uv.lock                 # Locked dependencies (all platforms)
 └── docker-compose.yaml     # Docker services
 ```
 
@@ -266,7 +225,7 @@ To execute tests locally (requires that `docker` and Docker Compose are installe
 
 ```bash
 docker compose run --rm py-test
-# Or with legacy v1: docker-compose run --rm py-test
+# Or with legacy v1: docker compose run --rm py-test
 ```
 
 ### Code Style
@@ -282,8 +241,8 @@ This project uses [Ruff](https://docs.astral.sh/ruff/) for linting and formattin
 To format your code before committing:
 
 ```bash
-docker-compose run --rm ruff-format
-docker-compose run --rm ruff-lint
+docker compose run --rm ruff-format
+docker compose run --rm ruff-lint
 ```
 
 ### Type Checking
@@ -291,7 +250,7 @@ docker-compose run --rm ruff-lint
 This project uses [MyPy](https://mypy-lang.org/) for static type checking. Run type checks with:
 
 ```bash
-docker-compose run --rm mypy
+docker compose run --rm mypy
 ```
 
 ## What's New in v0.2.0
@@ -315,7 +274,7 @@ For users, no changes required - the plugin API is unchanged. Simply update your
 
 For developers:
 
-1. Rebuild Docker containers: `docker-compose build`
+1. Rebuild Docker containers: `docker compose build`
 2. All old linting tools (black, isort, flake8, bandit) have been replaced with Ruff
 3. Configuration moved from multiple files to `pyproject.toml`
 
