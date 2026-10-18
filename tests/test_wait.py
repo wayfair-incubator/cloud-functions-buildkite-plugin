@@ -7,11 +7,10 @@ from plugin_scripts.pipeline_exceptions import DeployFailed, MissingConfigError
 
 
 def _service(mocker, *operations):
-    service = mocker.Mock()
-    service.operations.return_value.get.return_value.execute.side_effect = list(
-        operations
-    )
-    return service
+    """The operations resource, answering with the given operations in turn."""
+    resource = mocker.Mock()
+    resource.get.return_value.execute.side_effect = list(operations)
+    return resource
 
 
 @pytest.fixture(autouse=True)
@@ -25,7 +24,7 @@ def test_wait_returns_when_the_operation_is_done(mocker, no_sleep):
     deploy._wait_for_operation(service, "operations/op", timeout=600)
 
     assert no_sleep.call_count == 2
-    service.operations.return_value.get.assert_called_with(name="operations/op")
+    service.get.assert_called_with(name="operations/op")
 
 
 def test_wait_raises_with_the_error_of_a_failed_operation(mocker):
@@ -39,9 +38,7 @@ def test_wait_raises_with_the_error_of_a_failed_operation(mocker):
 
 def test_wait_times_out(mocker):
     service = mocker.Mock()
-    service.operations.return_value.get.return_value.execute.return_value = {
-        "done": False
-    }
+    service.get.return_value.execute.return_value = {"done": False}
     clock = iter([0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     mocker.patch(
         "plugin_scripts.deploy.time.monotonic", side_effect=lambda: next(clock)

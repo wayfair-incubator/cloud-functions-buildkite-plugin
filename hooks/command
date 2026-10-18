@@ -74,6 +74,12 @@ if [[ ! ${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_WAIT:-true} =~ ^(true|on|yes|1)$ ]]; 
 	wait="false"
 fi
 
+generation="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GENERATION:-1}"
+if [[ ${generation} != "1" && ${generation} != "2" ]]; then
+	echo "ERROR: generation must be 1 or 2, not '${generation}'"
+	exit 1
+fi
+
 wait_timeout="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_WAIT_TIMEOUT:-600}"
 if [[ ! ${wait_timeout} =~ ^[0-9]+$ ]]; then
 	echo "ERROR: wait_timeout must be a number of seconds, not '${wait_timeout}'"
@@ -107,6 +113,7 @@ if [[ ${debug_mode} == "true" ]]; then
 	echo "GCP Region: ${gcp_region}"
 	echo "Cloud Function Name: ${cloud_function_name}"
 	echo "Cloud Function Directory: ${cloud_function_directory}"
+	echo "Generation: ${generation}"
 	echo "Wait for deployment: ${wait} (timeout ${wait_timeout}s)"
 	echo "Docker Image: ${image}"
 fi
@@ -129,6 +136,7 @@ args+=(
 	"--env" "cloud_function_name=$cloud_function_name"
 	"--env" "cloud_function_directory=$cloud_function_directory"
 	"--env" "debug_mode=$debug_mode"
+	"--env" "generation=$generation"
 	"--env" "wait=$wait"
 	"--env" "wait_timeout=$wait_timeout"
 )

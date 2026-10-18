@@ -7,7 +7,7 @@
 
 This buildkite plugin deploys code to an existing [Cloud Functions](https://cloud.google.com/functions) function.
 
-It zips `cloud_function_directory`, uploads the archive and updates the function through the Cloud Functions **v1 API**, so it manages **1st generation** functions that already exist. It does not create functions and does not change their runtime, entry point, environment variables or any other settings: only the source code is replaced. The work happens in a Docker container (`python:3.15-slim` by default) that installs a hash-locked set of Google client libraries with uv, so agents need Docker and network access.
+It zips `cloud_function_directory`, uploads the archive and updates the function through the Cloud Functions **v1 API**, so by default it manages **1st generation** functions that already exist (`generation: 2` switches to the v2 API for 2nd generation / Cloud Run functions). It does not create functions and does not change their runtime, entry point, environment variables or any other settings: only the source code is replaced. The work happens in a Docker container (`python:3.15-slim` by default) that installs a hash-locked set of Google client libraries with uv, so agents need Docker and network access.
 
 See the [plugin tester](https://github.com/buildkite-plugins/buildkite-plugin-tester) for testing examples and usage, and the [Buildkite docs on writing plugins](https://buildkite.com/docs/plugins/writing) to understand everything in this repo.
 
@@ -56,6 +56,14 @@ The directory in your repository where you are storing the code files for the cl
 Example: `directory/function-code`
 
 ### Optional
+
+### `generation` (optional, integer)
+
+`1` (default) updates a 1st generation function through the Cloud Functions v1 API. `2` updates a 2nd generation function (a Cloud Run function) through the v2 API: the archive is uploaded to a signed URL and only the function's source location (`buildConfig.source.storageSource`) is changed, so runtime, entry point, environment variables and every other setting stay as they are. Using the wrong value fails with a clear error (the plugin checks the function's generation).
+
+```yaml
+          generation: 2
+```
 
 ### `wait` (optional, boolean)
 

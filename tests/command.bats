@@ -185,3 +185,23 @@ teardown() {
   [ "$status" -eq 1 ]
   [[ $output == *"wait_timeout must be a number"* ]]
 }
+
+@test "generation defaults to 1 and is passed to the container" {
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "generation=1" "${DOCKER_LOG}.create"
+}
+
+@test "generation 2 is passed to the container" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GENERATION=2
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "generation=2" "${DOCKER_LOG}.create"
+}
+
+@test "a generation other than 1 or 2 is rejected" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GENERATION=3
+  run "${HOOK}"
+  [ "$status" -eq 1 ]
+  [[ $output == *"generation must be 1 or 2"* ]]
+}
