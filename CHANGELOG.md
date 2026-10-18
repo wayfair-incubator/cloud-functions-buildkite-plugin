@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (Cloud Run functions) through the Cloud Functions v2 API: it uploads the archive to a signed
   URL and patches only `buildConfig.source.storageSource`, then waits for the operation like
   generation 1 does. Without the option nothing changes.
+- `exclude` option: an array of shell-style globs, relative to `cloud_function_directory`, of files that
+  are not uploaded (for example `tests` or `*.md`), in addition to the built-in exclusions. The patterns
+  reach the container as a newline-separated environment variable, never inside a shell command. The step
+  fails when every file is excluded; the log reports how many files were excluded.
 
 ### Changed
 

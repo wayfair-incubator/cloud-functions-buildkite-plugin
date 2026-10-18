@@ -57,6 +57,17 @@ Example: `directory/function-code`
 
 ### Optional
 
+### `exclude` (optional, array of strings)
+
+Shell-style globs, relative to `cloud_function_directory`, of files that are not uploaded, in addition to the [built-in exclusions](#what-is-uploaded). A pattern that matches a directory excludes everything inside it, and `*` also matches `/`. The step fails if every file ends up excluded.
+
+```yaml
+          exclude:
+            - "tests"
+            - "docs"
+            - "*.md"
+```
+
 ### `generation` (optional, integer)
 
 `1` (default) updates a 1st generation function through the Cloud Functions v1 API. `2` updates a 2nd generation function (a Cloud Run function) through the v2 API: the archive is uploaded to a signed URL and only the function's source location (`buildConfig.source.storageSource`) is changed, so runtime, entry point, environment variables and every other setting stay as they are. Using the wrong value fails with a clear error (the plugin checks the function's generation).
@@ -111,7 +122,7 @@ The key is handed to the container by variable name only, so it never appears on
 
 ## What is uploaded
 
-Everything in `cloud_function_directory` except `.git`, `node_modules`, `__pycache__`, `*.pyc`, `.env`, `.env.*` and `.DS_Store`.
+Everything in `cloud_function_directory` except `.git`, `node_modules`, `__pycache__`, `*.pyc`, `.env`, `.env.*` and `.DS_Store`, and anything matched by the [`exclude`](#exclude-optional-array-of-strings) option. The log lists the patterns and how many files were excluded.
 
 ## Development
 

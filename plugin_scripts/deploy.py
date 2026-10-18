@@ -1,4 +1,5 @@
 import ast
+import fnmatch
 import json
 import logging
 import os
@@ -37,11 +38,33 @@ _EXCLUDED_DIRECTORIES = {".git", "__pycache__", "node_modules"}
 _EXCLUDED_FILE_PATTERNS = (".env", ".env.*", "*.pyc", ".DS_Store")
 
 
-def _is_excluded(relative_path: Path) -> bool:
-    """Return True if a path (relative to the function directory) is not uploaded."""
+def _exclude_patterns() -> list[str]:
+    """User patterns from the `exclude` option (newline separated)."""
+    raw = os.environ.get("exclude_patterns", "")
+    return [line.strip() for line in raw.splitlines() if line.strip()]
+
+
+def _is_excluded(relative_path: Path, patterns: list[str] | None = None) -> bool:
+    """
+    Return True if a path (relative to the function directory) is not uploaded.
+
+    Besides the built-in exclusions, `patterns` are shell-style globs (`fnmatch`)
+    matched against the path relative to the directory, with `/` separators. A
+    pattern that matches a directory excludes everything inside it. Note that `*`
+    also matches `/`.
+    """
     if any(part in _EXCLUDED_DIRECTORIES for part in relative_path.parts):
         return True
-    return any(relative_path.match(pattern) for pattern in _EXCLUDED_FILE_PATTERNS)
+    if any(relative_path.match(pattern) for pattern in _EXCLUDED_FILE_PATTERNS):
+        return True
+    posix = relative_path.as_posix()
+    candidates = [posix, *(parent.as_posix() for parent in relative_path.parents)]
+    return any(
+        fnmatch.fnmatchcase(candidate, pattern)
+        for pattern in patterns or []
+        for candidate in candidates
+        if candidate != "."
+    )
 
 
 def _zip_directory(handler: zipfile.ZipFile) -> None:
@@ -63,16 +86,28 @@ def _zip_directory(handler: zipfile.ZipFile) -> None:
     cloud_function_directory = Path(cloud_function_directory_str)
     _logger.info(f"Zipping directory: {cloud_function_directory}")
 
+    patterns = _exclude_patterns()
+    if patterns:
+        _logger.info(f"Excluding: {', '.join(patterns)}")
+
     file_count = 0
+    excluded_count = 0
     for file_path in sorted(cloud_function_directory.rglob("*")):
         arcname = file_path.relative_to(cloud_function_directory)
-        if _is_excluded(arcname):
+        if not file_path.is_file():
             continue
-        if file_path.is_file():
-            handler.write(file_path, arcname)
-            file_count += 1
+        if _is_excluded(arcname, patterns):
+            excluded_count += 1
+            continue
+        handler.write(file_path, arcname)
+        file_count += 1
 
-    _logger.info(f"Successfully zipped {file_count} files")
+    if patterns and file_count == 0:
+        msg = "Every file in the directory is excluded by the `exclude` patterns"
+        _logger.error(msg)
+        raise DeployFailed(msg)
+
+    _logger.info(f"Successfully zipped {file_count} files ({excluded_count} excluded)")
 
 
 def _get_credentials() -> Any:
