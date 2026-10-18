@@ -61,29 +61,18 @@ def test__zip_directory_with_actual_files(mocker, monkeypatch, tmp_path):
         Path(zip_path).unlink()
 
 
-def test__get_bq_credentials_missing_credentials(mocker, monkeypatch):
-    """Test _get_bq_credentials when credentials env var is missing."""
-    monkeypatch.delenv("credentials", raising=False)
-
-    with pytest.raises(MissingConfigError) as exc_info:
-        deploy._get_bq_credentials()
-
-    assert exc_info.value.config_name == "credentials"
-    assert "Missing `credentials` config" in str(exc_info.value)
-
-
-def test__get_bq_credentials_invalid_json(mocker, monkeypatch):
-    """Test _get_bq_credentials with invalid JSON."""
+def test__get_credentials_invalid_json(mocker, monkeypatch):
+    """Test _get_credentials with invalid JSON."""
     monkeypatch.setenv("credentials", "not valid json{")
 
     with pytest.raises(ValueError) as exc_info:
-        deploy._get_bq_credentials()
+        deploy._get_credentials()
 
     assert "Invalid credentials JSON" in str(exc_info.value)
 
 
-def test__get_bq_credentials_with_debug_logging(mocker, monkeypatch):
-    """Test _get_bq_credentials logs debug info correctly."""
+def test__get_credentials_with_debug_logging(mocker, monkeypatch):
+    """Test _get_credentials logs debug info correctly."""
     valid_creds = {
         "type": "service_account",
         "project_id": "test-project",
@@ -104,7 +93,7 @@ def test__get_bq_credentials_with_debug_logging(mocker, monkeypatch):
     mock_creds = mocker.Mock(spec=service_account.Credentials)
     mock_from_info.return_value = mock_creds
 
-    result = deploy._get_bq_credentials()
+    result = deploy._get_credentials()
 
     assert result == mock_creds
     mock_from_info.assert_called_once()
@@ -124,7 +113,7 @@ def test__upload_source_code_using_archive_url_success_with_logging(
     mock_bucket.blob.return_value = mock_blob
 
     mock_creds = mocker.Mock()
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials", return_value=mock_creds)
+    mocker.patch("plugin_scripts.deploy._get_credentials", return_value=mock_creds)
 
     mock_data = mocker.Mock()
     mock_data.read.return_value = b"test source code data"

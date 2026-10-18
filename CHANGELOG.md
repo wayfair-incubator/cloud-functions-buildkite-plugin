@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `gcp_service_account` is now optional. Without it the deployment uses Application Default
+  Credentials: the agent's cloud identity (metadata server, Workload Identity) or the file named by
+  `GOOGLE_APPLICATION_CREDENTIALS`, which is mounted read-only into the container. Setting a key
+  works exactly as before and takes precedence.
 - `wait` (default `true`) and `wait_timeout` (seconds, default `600`) options. After updating the
   function the plugin now polls the Cloud Functions operation until it is done and fails the step
   with the error of the operation (for example a failed build). **BREAKING (behaviour):** steps whose

@@ -85,13 +85,12 @@ def test__validate_env_variables_missing_gcp_region(
     assert exec_info.value.config_name == "gcp_region"
 
 
-def test__validate_env_variables_missing_credentials(
-    gcp_project, cloud_function_directory, gcp_region, cloud_function_name
+def test__validate_env_variables_credentials_are_optional(
+    monkeypatch, gcp_project, cloud_function_directory, gcp_region, cloud_function_name
 ):
-    """Test validation fails when credentials are missing."""
-    with pytest.raises(MissingConfigError) as exec_info:
-        deploy._validate_env_variables()
-    assert exec_info.value.config_name == "credentials"
+    """No service account key is needed: Application Default Credentials are used."""
+    monkeypatch.delenv("credentials", raising=False)
+    deploy._validate_env_variables()
 
 
 def test__validate_env_variables_all_variables_present(
@@ -122,30 +121,44 @@ def test__validate_if_path_exists_no_env_var(mocker, monkeypatch):
     assert not deploy._validate_if_path_exists()
 
 
-def test__get_bq_credentials_success(mocker, credentials):
+def test__get_credentials_success(mocker, credentials):
     """Test successfully getting credentials."""
     expected = mocker.Mock()
     mocker.patch(
         "plugin_scripts.deploy.service_account.Credentials.from_service_account_info",
         return_value=expected,
     )
-    response = deploy._get_bq_credentials()
+    response = deploy._get_credentials()
     assert response == expected
 
 
-def test__get_bq_credentials_missing(mocker, monkeypatch):
-    """Test getting credentials fails when not set."""
+def test__get_credentials_falls_back_to_application_default(mocker, monkeypatch):
+    """Without a key, Application Default Credentials are used."""
     monkeypatch.delenv("credentials", raising=False)
-    with pytest.raises(MissingConfigError) as exec_info:
-        deploy._get_bq_credentials()
-    assert exec_info.value.config_name == "credentials"
+    expected = mocker.Mock()
+    default = mocker.patch(
+        "plugin_scripts.deploy.google.auth.default", return_value=(expected, "proj")
+    )
+    assert deploy._get_credentials() is expected
+    default.assert_called_once_with(scopes=deploy._SCOPES)
 
 
-def test__get_bq_credentials_invalid_json(mocker, monkeypatch):
+def test__get_credentials_without_key_or_adc_fails_clearly(mocker, monkeypatch):
+    """No key and no Application Default Credentials is a clear DeployFailed."""
+    monkeypatch.delenv("credentials", raising=False)
+    mocker.patch(
+        "plugin_scripts.deploy.google.auth.default",
+        side_effect=deploy.google.auth.exceptions.DefaultCredentialsError("nothing"),
+    )
+    with pytest.raises(DeployFailed, match="gcp_service_account"):
+        deploy._get_credentials()
+
+
+def test__get_credentials_invalid_json(mocker, monkeypatch):
     """Test getting credentials fails with invalid JSON."""
     monkeypatch.setenv("credentials", "not valid json")
     with pytest.raises(ValueError) as exec_info:
-        deploy._get_bq_credentials()
+        deploy._get_credentials()
     assert "Invalid credentials JSON" in str(exec_info.value)
 
 
@@ -262,7 +275,7 @@ def test__handle_exception_debug_mode(mocker):
 def test__upload_source_code_using_archive_url_success(mocker, credentials):
     """Test successful upload using archive URL."""
     mock_storage_client = mocker.patch("plugin_scripts.deploy.storage.Client")
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
 
     mock_bucket = mocker.Mock()
     mock_blob = mocker.Mock()

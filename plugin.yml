@@ -20,7 +20,7 @@ configuration:
       description: "Directory of the repository that holds the function's code"
     gcp_service_account:
       type: string
-      description: "Service account key (JSON). May also be given as the gcp_service_account environment variable"
+      description: "Service account key (JSON). May also be given as the gcp_service_account environment variable. Without it, Application Default Credentials are used"
     wait:
       type: boolean
       description: "Wait for the deployment to finish and fail the step if it fails (default: true)"
