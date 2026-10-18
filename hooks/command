@@ -205,7 +205,7 @@ shell=("/bin/sh" "-e" "-c")
 args+=("${shell[@]}")
 display_command+=("${shell[@]}")
 
-command+=("pip install --quiet uv==${uv_version} && uv pip install --system -q --require-hashes -r plugin_scripts/requirements.lock && python -m plugin_scripts.__init__")
+command+=("pip install --quiet uv==${uv_version} && (cd plugin_scripts && uv export --frozen --no-dev --no-emit-project --no-header --format requirements-txt) | uv pip install --system -q --require-hashes -r - && python -m plugin_scripts.__init__")
 
 # join command lines
 command_string="$(
@@ -251,6 +251,9 @@ trap cleanup EXIT
 
 docker cp "${PWD}/." "${DOCKERID}:${workdir}"
 docker cp "${PLUGIN_DIR}/plugin_scripts" "${DOCKERID}:${workdir}/plugin_scripts"
+# The dependencies are exported, with hashes, from the lock file inside the container
+docker cp "${PLUGIN_DIR}/pyproject.toml" "${DOCKERID}:${workdir}/plugin_scripts/pyproject.toml"
+docker cp "${PLUGIN_DIR}/uv.lock" "${DOCKERID}:${workdir}/plugin_scripts/uv.lock"
 
 rv=0
 docker start -a "${DOCKERID}" || rv=$?

@@ -7,7 +7,7 @@
 
 This buildkite plugin deploys code to an existing [Cloud Functions](https://cloud.google.com/functions) function.
 
-It zips `cloud_function_directory`, uploads the archive and updates the function through the Cloud Functions **v1 API**, so by default it manages **1st generation** functions that already exist (`generation: 2` switches to the v2 API for 2nd generation / Cloud Run functions). It does not create functions and does not change their runtime, entry point, environment variables or any other settings: only the source code is replaced. The work happens in a Docker container (`python:3.15-slim` by default) that installs a hash-locked set of Google client libraries with uv, so agents need Docker and network access.
+It zips `cloud_function_directory`, uploads the archive and updates the function through the Cloud Functions **v1 API**, so by default it manages **1st generation** functions that already exist (`generation: 2` switches to the v2 API for 2nd generation / Cloud Run functions). It does not create functions and does not change their runtime, entry point, environment variables or any other settings: only the source code is replaced. The work happens in a Docker container (`python:3.15-slim` by default) that installs a hash-locked set of Google client libraries (from `uv.lock`) with uv, so agents need Docker and network access.
 
 See the [plugin tester](https://github.com/buildkite-plugins/buildkite-plugin-tester) for testing examples and usage, and the [Buildkite docs on writing plugins](https://buildkite.com/docs/plugins/writing) to understand everything in this repo.
 
@@ -205,13 +205,12 @@ docker compose run --rm mypy
 # Install the locked dependencies, including the dev tools
 uv sync --locked
 
-# Add or change a dependency, then refresh uv.lock and the hashed
-# plugin_scripts/requirements.lock that the deploy container installs
-docker compose run --rm lock-requirements          # or: uv lock && uv export ...
+# Add or change a dependency, then refresh uv.lock
+docker compose run --rm lock-requirements          # or: uv lock
 docker compose run --rm lock-requirements --upgrade # move every pin to its latest release
 ```
 
-CI fails when `uv.lock` or `plugin_scripts/requirements.lock` is out of date.
+`uv.lock` is the only lock file: the deploy container exports its hashed requirements from it when it runs. CI fails when it is out of date.
 
 #### Interactive Development
 
@@ -246,7 +245,6 @@ cloud-functions-buildkite-plugin/
 ├── plugin_scripts/          # Code that runs inside the container
 │   ├── deploy.py            # Deployment logic
 │   ├── pipeline_exceptions.py
-│   └── requirements.lock    # Hashed runtime dependencies (exported from uv.lock)
 ├── tests/                   # pytest for plugin_scripts, bats for the hook and scripts
 ├── docker/                  # Devbox, shfmt image, test and lock scripts
 ├── .github/                 # Workflows and the changelog script (releases)
