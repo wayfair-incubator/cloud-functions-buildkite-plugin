@@ -53,14 +53,40 @@ The directory in your repository where you are storing the code files for the cl
 
 Example: `directory/function-code`
 
+### Optional
+
+### `custom_image` (optional, string)
+
+Docker image the deployment runs in. Default: `python:3.13-slim`.
+
+### `debug_mode` (optional, boolean)
+
+Log extra details. Default: `false`.
+
+### `docker_pull_retries` (optional, integer)
+
+How many times pulling the image is tried. Default: `3`.
+
 ## Secret
 
-This plugin expects `GCP_SERVICE_ACCOUNT` is placed as an environment variable. Make sure to store it [securely](https://buildkite.com/docs/pipelines/secrets)!
+The deployment needs a service account key (JSON). Pass it with the `gcp_service_account` plugin option or a `gcp_service_account` environment variable, and store it [securely](https://buildkite.com/docs/pipelines/secrets)!
 
 ```yaml
-env:
-  gcp_service_account: '{"email": ""}'
+steps:
+  - plugins:
+      - wayfair-incubator/cloud-functions#v0.2.0:
+          gcp_project: "gcp-us-project"
+          gcp_region: "us-central1"
+          cloud_function_name: "function-1"
+          cloud_function_directory: "directory/function-code"
+          gcp_service_account: "${GCP_SA_KEY}" # or set a gcp_service_account env var
 ```
+
+The key is handed to the container by variable name only, so it never appears on a command line. The container does not receive the rest of the job environment (only the proxy variables `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and their lowercase forms, when set).
+
+## What is uploaded
+
+Everything in `cloud_function_directory` except `.git`, `node_modules`, `__pycache__`, `*.pyc`, `.env`, `.env.*` and `.DS_Store`.
 
 ## Development
 

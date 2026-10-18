@@ -3,18 +3,33 @@ description: "This buildkite plugin can be used to deploy code to Cloud Function
 author: "Jash Parekh <jash389@gmail.com>"
 requirements:
   - bash
+  - docker
 configuration:
   properties:
     gcp_project:
       type: string
+      description: "GCP project ID that hosts the cloud function"
     gcp_region:
       type: string
+      description: "GCP region of the cloud function"
     cloud_function_name:
       type: string
+      description: "Name of the cloud function"
     cloud_function_directory:
       type: string
+      description: "Directory of the repository that holds the function's code"
     gcp_service_account:
       type: string
+      description: "Service account key (JSON). May also be given as the gcp_service_account environment variable"
+    custom_image:
+      type: string
+      description: "Docker image used to run the deployment (default: python:3.13-slim)"
+    debug_mode:
+      type: boolean
+      description: "Log extra details (default: false)"
+    docker_pull_retries:
+      type: integer
+      description: "How many times to try pulling the image (default: 3)"
   required:
     - gcp_project
     - gcp_region

@@ -26,13 +26,6 @@ function retry {
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.."
 
-# SECURITY: Use secure temporary file with proper permissions
-PIPELINE_FILE=$(mktemp)
-chmod 600 "$PIPELINE_FILE"
-
-# SECURITY: Ensure cleanup on exit, error, interrupt, or termination
-trap 'rm -f "$PIPELINE_FILE"' EXIT ERR INT TERM
-
 debug_mode="false"
 if [[ ${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_DEBUG_MODE:-false} =~ (true|on|1) ]]; then
 	echo "--- :hammer: Enabling debug mode"
@@ -41,45 +34,48 @@ fi
 
 workdir="/workdir"
 
-# Updated to Python 3.13
+# Pinned: uv is installed inside the container on every run
+uv_version="0.13.1"
+
 default_image="python:3.13-slim"
 image="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CUSTOM_IMAGE:-$default_image}"
 
-if [ -z "$BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_PROJECT" ]; then
+if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_PROJECT:-}" ]; then
 	echo "ERROR: gcp project (gcp_project) key not set"
 	exit 1
 fi
 
 gcp_project="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_PROJECT}"
 
-if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_REGION}" ]; then
+if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_REGION:-}" ]; then
 	echo "ERROR: gcp region (gcp_region) not set"
 	exit 1
 fi
 
 gcp_region="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_REGION}"
 
-if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_NAME}" ]; then
+if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_NAME:-}" ]; then
 	echo "ERROR: cloud function name (cloud_function_name) not set"
 	exit 1
 fi
 
 cloud_function_name="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_NAME}"
 
-if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_DIRECTORY}" ]; then
+if [ -z "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_DIRECTORY:-}" ]; then
 	echo "ERROR: cloud function directory (cloud_function_directory) not set"
 	exit 1
 fi
 
 cloud_function_directory="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_DIRECTORY}"
 
+# The service account key comes from the `gcp_service_account` plugin option or,
+# as before, from a `gcp_service_account` environment variable.
+gcp_service_account="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_SERVICE_ACCOUNT:-${gcp_service_account:-}}"
+
 if [ -z "${gcp_service_account}" ]; then
 	echo "ERROR: gcp service account (gcp_service_account) not set"
 	exit 1
 fi
-
-# Write credentials to secure temporary file
-echo "$gcp_service_account" >"$PIPELINE_FILE"
 
 if [[ ${debug_mode} == "true" ]]; then
 	echo "Configuration:"
@@ -88,42 +84,27 @@ if [[ ${debug_mode} == "true" ]]; then
 	echo "Cloud Function Name: ${cloud_function_name}"
 	echo "Cloud Function Directory: ${cloud_function_directory}"
 	echo "Docker Image: ${image}"
-	echo "Credentials file: ${PIPELINE_FILE}"
 fi
 
-args=("-it" "--rm" "--init" "--workdir" "${workdir}")
+# Only an allowlist of variables reaches the container. The container runs code
+# installed from PyPI, so it must not see the rest of the job environment (other
+# secrets, the agent access token). `--env NAME` without a value copies the
+# value from this process's environment, which keeps secrets off the command line.
+args=("--init" "--workdir" "${workdir}")
 
-# Propagate all environment variables into the container
-if [[ -n ${BUILDKITE_ENV_FILE:-} ]]; then
-	# Read in the env file and convert to --env params for docker
-	# This is because --env-file doesn't support newlines or quotes per https://docs.docker.com/compose/env-file/#syntax-rules
-	while read -r var; do
-		args+=(--env "${var%%=*}")
-	done <"$BUILDKITE_ENV_FILE"
-else
-	echo '🚨 Not propagating environment variables to container as $BUILDKITE_ENV_FILE is not set'
-fi
-
-# Mount the buildkite-agent
-if [[ -z ${BUILDKITE_AGENT_BINARY_PATH:-} ]]; then
-	if ! command -v buildkite-agent >/dev/null 2>&1; then
-		echo "+++ 🚨 Failed to find buildkite-agent in PATH to mount into container"
-		exit 1
-	else
-		BUILDKITE_AGENT_BINARY_PATH=$(command -v buildkite-agent)
+for proxy_var in HTTP_PROXY HTTPS_PROXY NO_PROXY http_proxy https_proxy no_proxy; do
+	if [[ -n ${!proxy_var:-} ]]; then
+		args+=(--env "${proxy_var}")
 	fi
-fi
+done
+
 args+=(
-	"--env" "BUILDKITE_JOB_ID"
-	"--env" "BUILDKITE_BUILD_ID"
-	"--env" "BUILDKITE_AGENT_ACCESS_TOKEN"
 	"--env" "gcp_project=$gcp_project"
 	"--env" "gcp_region=$gcp_region"
 	"--env" "cloud_function_name=$cloud_function_name"
 	"--env" "cloud_function_directory=$cloud_function_directory"
 	"--env" "debug_mode=$debug_mode"
-	"--env" "credentials=$(<"$PIPELINE_FILE")"
-	"--volume" "$BUILDKITE_AGENT_BINARY_PATH:/usr/bin/buildkite-agent"
+	"--env" "credentials"
 )
 
 # Add the image in before the shell and command
@@ -137,8 +118,7 @@ shell=("/bin/sh" "-e" "-c")
 args+=("${shell[@]}")
 display_command+=("${shell[@]}")
 
-# Updated to use uv for faster installation
-command+=("pip install uv && uv pip install --system -r plugin_scripts/requirements.lock && python -m plugin_scripts.__init__")
+command+=("pip install --quiet uv==${uv_version} && uv pip install --system -r plugin_scripts/requirements.lock && python -m plugin_scripts.__init__")
 
 # join command lines
 command_string="$(
@@ -150,11 +130,11 @@ args+=("${command_string}")
 display_command+=("'${command_string}'")
 
 echo "--- :docker: Pulling ${image}"
-if ! retry "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_DOCKER_PULL_RETRIES:-3}" \
-	docker pull "${image}"; then
-	rv=$?
+rv=0
+retry "${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_DOCKER_PULL_RETRIES:-3}" docker pull "${image}" || rv=$?
+if ((rv != 0)); then
 	echo "--- :docker: Pull failed."
-	exit $rv
+	exit "$rv"
 fi
 
 echo '--- :docker: Logging "docker create" command'
@@ -169,9 +149,15 @@ if [[ ${debug_mode} == "true" ]]; then
 fi
 
 # For copy-checkout, we have to `docker create`, then `docker cp "${PWD}:${workdir}"`, then `docker start`
-DOCKERID=$(docker create "${args[@]}")
+# The key is handed to docker by variable name only, so it is never on a command line.
+DOCKERID=$(credentials="${gcp_service_account}" docker create "${args[@]}")
+
+# The container is removed on every exit path, including a failed `docker cp`
+function cleanup {
+	docker rm -f "${DOCKERID}" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
 docker cp "${PWD}/." "${DOCKERID}:${workdir}"
 docker cp "${PLUGIN_DIR}/plugin_scripts" "${DOCKERID}:${workdir}/plugin_scripts"
 docker start -a "${DOCKERID}"
-
-# Cleanup is handled by trap

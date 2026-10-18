@@ -6,6 +6,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- The service account key is no longer written to a temporary file or put on the `docker create`
+  command line (visible in `ps` and `docker inspect`); it is passed to Docker by variable name only.
+- **BREAKING (behaviour):** the container no longer receives the whole job environment
+  (`BUILDKITE_ENV_FILE`), the agent access token or the `buildkite-agent` binary; none of them was
+  used. Only proxy variables are forwarded. `buildkite-agent` no longer has to be on the agent's `PATH`.
+- **BREAKING (behaviour):** the uploaded archive no longer contains `.git`, `node_modules`,
+  `__pycache__`, `*.pyc`, `.env`, `.env.*` or `.DS_Store`, so local secrets are not uploaded. Files
+  are added in sorted order.
+- Debug mode no longer logs the full function definition (it can contain environment variables);
+  only name, status, runtime, entry point and update time.
+- `uv` is pinned (`uv==0.13.1`) instead of installing whatever is latest.
+
+### Fixed
+
+- A failed `docker pull` now fails the step (it exited 0 silently).
+- The deploy container is removed on every exit path, also when `docker cp` fails.
+- Missing options now give the intended `ERROR: ... not set` message instead of
+  `unbound variable`.
+- `gcp_service_account` can be given as the plugin option (declared in `plugin.yml` but ignored
+  until now) as well as the environment variable.
+- `custom_image`, `debug_mode` and `docker_pull_retries` are now declared in `plugin.yml` and
+  documented.
+- Debug mode logged the method `Response.json` instead of the upload response body.
+- The container is no longer started with `-it`/`--rm` (no TTY exists on agents).
+
+### Added
+
+- `tests/command.bats`: tests of the hook with a stub `docker` (it had none).
+
 ## [v0.2.0] - 2025-11-02
 
 ### Changed (Breaking)

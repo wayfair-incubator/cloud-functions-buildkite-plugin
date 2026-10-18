@@ -27,6 +27,18 @@ console = logging.StreamHandler()
 _logger.addHandler(console)
 
 
+# Never uploaded: version control data, local secrets and build leftovers
+_EXCLUDED_DIRECTORIES = {".git", "__pycache__", "node_modules"}
+_EXCLUDED_FILE_PATTERNS = (".env", ".env.*", "*.pyc", ".DS_Store")
+
+
+def _is_excluded(relative_path: Path) -> bool:
+    """Return True if a path (relative to the function directory) is not uploaded."""
+    if any(part in _EXCLUDED_DIRECTORIES for part in relative_path.parts):
+        return True
+    return any(relative_path.match(pattern) for pattern in _EXCLUDED_FILE_PATTERNS)
+
+
 def _zip_directory(handler: zipfile.ZipFile) -> None:
     """
     Zip the cloud function directory for deployment.
@@ -47,9 +59,11 @@ def _zip_directory(handler: zipfile.ZipFile) -> None:
     _logger.info(f"Zipping directory: {cloud_function_directory}")
 
     file_count = 0
-    for file_path in cloud_function_directory.rglob("*"):
+    for file_path in sorted(cloud_function_directory.rglob("*")):
+        arcname = file_path.relative_to(cloud_function_directory)
+        if _is_excluded(arcname):
+            continue
         if file_path.is_file():
-            arcname = file_path.relative_to(cloud_function_directory)
             handler.write(file_path, arcname)
             file_count += 1
 
@@ -137,7 +151,7 @@ def _upload_source_code_using_upload_url(
         _logger.info(f"HTTP Status Code for uploading data: {response.status_code}")
 
         if debug_mode:
-            _logger.debug(f"Response body: {pformat(response.json)}")
+            _logger.debug(f"Response body: {response.text}")
 
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
@@ -251,7 +265,13 @@ def _deploy(debug_mode: bool) -> None:
             ) from e
 
         if debug_mode:
-            _logger.debug(f"Function Definition: {pformat(function)}")
+            # Only non-sensitive fields: the full definition can hold environment
+            # variables and secret references
+            summary = {
+                key: function.get(key)
+                for key in ("name", "status", "runtime", "entryPoint", "updateTime")
+            }
+            _logger.debug(f"Function summary: {pformat(summary)}")
 
         with TemporaryFile() as data:
             file_handler = zipfile.ZipFile(data, mode="w")
