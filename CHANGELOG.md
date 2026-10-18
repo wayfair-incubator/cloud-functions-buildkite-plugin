@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the commit is tagged `vX.Y.Z` and a GitHub release is created with that section as its notes. It
   uses only `GITHUB_TOKEN`, does nothing if the release exists and fails if the README does not
   mention the version. See CONTRIBUTING.md. `.github/scripts/changelog.sh` has bats tests.
+- README: what the plugin does and does not do (updates the source of an existing 1st generation
+  function through the v1 API), an "Upgrading to 1.0.0" section, the current options, credentials and
+  project layout.
 
 ### Changed
 

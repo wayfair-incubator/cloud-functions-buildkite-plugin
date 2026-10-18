@@ -5,7 +5,9 @@
 
 # Cloud Functions Buildkite Plugin
 
-This buildkite plugin can be used to deploy code to [Cloud Functions](https://cloud.google.com/functions)
+This buildkite plugin deploys code to an existing [Cloud Functions](https://cloud.google.com/functions) function.
+
+It zips `cloud_function_directory`, uploads the archive and updates the function through the Cloud Functions **v1 API**, so it manages **1st generation** functions that already exist. It does not create functions and does not change their runtime, entry point, environment variables or any other settings: only the source code is replaced. The work happens in a Docker container (`python:3.15-slim` by default) that installs a hash-locked set of Google client libraries with uv, so agents need Docker and network access.
 
 See the [plugin tester](https://github.com/buildkite-plugins/buildkite-plugin-tester) for testing examples and usage, and the [Buildkite docs on writing plugins](https://buildkite.com/docs/plugins/writing) to understand everything in this repo.
 
@@ -68,7 +70,7 @@ may still complete). Default: `600`.
 
 ### `custom_image` (optional, string)
 
-Docker image the deployment runs in. Default: `python:3.13-slim`.
+Docker image the deployment runs in. It needs Python 3.11 or newer and network access to PyPI. Default: `python:3.15-slim`.
 
 ### `debug_mode` (optional, boolean)
 
@@ -200,35 +202,19 @@ uv run mypy plugin_scripts tests
 
 ```
 cloud-functions-buildkite-plugin/
-├── plugin_scripts/          # Main plugin code
-│   ├── __init__.py
-│   ├── deploy.py           # Deployment logic
-│   └── pipeline_exceptions.py  # Custom exceptions
-├── tests/                   # Test suite
-│   ├── __init__.py
-│   ├── test_deploy.py
-│   └── test_pipeline_exceptions.py
-├── docker/                  # Docker configuration
-│   ├── devbox.dockerfile
-│   ├── run_tests.sh        # Test runner script
-│   └── lock_requirements.sh # Dependency locking script
-├── hooks/                   # Buildkite plugin hooks
-│   └── command             # Main plugin command
-├── pyproject.toml          # All tool configurations
-├── uv.lock                 # Locked dependencies (all platforms)
-└── docker-compose.yaml     # Docker services
+├── hooks/command            # The plugin: starts the deploy container
+├── plugin.yml               # Options (checked by the plugin linter)
+├── plugin_scripts/          # Code that runs inside the container
+│   ├── deploy.py            # Deployment logic
+│   ├── pipeline_exceptions.py
+│   └── requirements.lock    # Hashed runtime dependencies (exported from uv.lock)
+├── tests/                   # pytest for plugin_scripts, bats for the hook and scripts
+├── docker/                  # Devbox, shfmt image, test and lock scripts
+├── .github/                 # Workflows and the changelog script (releases)
+├── pyproject.toml           # Dependencies and the Ruff, mypy and pytest settings
+├── uv.lock                  # Locked dependencies (all platforms)
+└── renovate.json            # Dependency updates
 ```
-
-### Configuration
-
-All tool configurations are centralized in `pyproject.toml`:
-
-- **Ruff**: Linting and formatting rules
-- **MyPy**: Type checking configuration
-- **Pytest**: Test runner configuration
-- **Coverage**: Code coverage settings
-
-See `pyproject.toml` for detailed configuration options.
 
 ## Contributing
 
@@ -236,11 +222,13 @@ See the [Contributing Guide](CONTRIBUTING.md) for additional information.
 
 ### Running Tests Locally
 
-To execute tests locally (requires that `docker` and Docker Compose are installed):
+Requires `docker` and Docker Compose:
 
 ```bash
-docker compose run --rm py-test
-# Or with legacy v1: docker compose run --rm py-test
+docker compose run --rm py-test   # pytest, mypy and Ruff
+docker compose run --rm test      # bats tests of the hook and scripts
+docker compose run --rm lint      # Buildkite plugin linter
+docker compose run --rm shfmt     # shell formatting of hooks/ and .github/scripts
 ```
 
 ### Code Style
@@ -268,32 +256,17 @@ This project uses [MyPy](https://mypy-lang.org/) for static type checking. Run t
 docker compose run --rm mypy
 ```
 
-## What's New in v0.2.0
+## Upgrading to 1.0.0
 
-This release includes major modernization improvements:
+Pipelines that only set the four required options and a `gcp_service_account` keep working. Things that behave differently:
 
-- ⚡ **10-100x faster** dependency installation with uv
-- ⚡ **10-100x faster** linting and formatting with Ruff
-- 🐍 **Python 3.13 & 3.14** support (upgraded from 3.10)
-- 🔒 **Security improvements**: Better error handling and logging
-- 📦 **Latest dependencies**: All packages updated to latest versions
-- 🧪 **Enhanced test coverage**: 17+ new test cases with branch coverage
-- 🎯 **Better error messages**: Custom exceptions with detailed information
-- 📝 **Comprehensive documentation**: Full docstrings and type hints
+- **The deployment is waited for.** A failed build or rollout now fails the step. Set `wait: false` for the old behaviour, or `wait_timeout` to change the 600 seconds.
+- **The container no longer receives the job environment**, the agent token or the `buildkite-agent` binary; only proxy variables are forwarded. If your function directory relied on a variable being present in the container, it never reached the deployed function anyway (only the zip is uploaded).
+- **The archive excludes `.git`, `node_modules`, `__pycache__`, `*.pyc`, `.env`, `.env.*` and `.DS_Store`.**
+- **The default image is `python:3.15-slim`** (was `python:3.13-slim`). Use `custom_image: python:3.13-slim` to keep the old one; Python 3.11 or newer is required.
+- `gcp_service_account` is optional now and can be a plugin option; without it Application Default Credentials are used.
 
-See [CHANGELOG.md](CHANGELOG.md) for complete details.
-
-## Migration from v0.1.x
-
-For users, no changes required - the plugin API is unchanged. Simply update your version reference.
-
-For developers:
-
-1. Rebuild Docker containers: `docker compose build`
-2. All old linting tools (black, isort, flake8, bandit) have been replaced with Ruff
-3. Configuration moved from multiple files to `pyproject.toml`
-
-See the [CHANGELOG.md](CHANGELOG.md#migration-guide) for detailed migration instructions.
+See [CHANGELOG.md](CHANGELOG.md) for every change.
 
 ## Credits
 
