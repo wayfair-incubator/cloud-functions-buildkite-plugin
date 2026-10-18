@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Renovate is the only dependency updater (there is no Dependabot config). `renovate.json` now
+  extends `helpers:pinGitHubActionDigests`, keeps `uv.lock` fresh with a weekly lock file
+  maintenance, and also tracks the Python dependencies in `pyproject.toml`, Dockerfiles and the
+  `python` image and `uv` version pinned in `hooks/command` (they were invisible before). The uv
+  versions are grouped into one PR, as are Go and shfmt; the `requires-python` support range is
+  not bumped. The exported `plugin_scripts/requirements.lock` is refreshed together with `uv.lock`
+  (`docker compose run --rm lock-requirements`), and CI fails if it is stale.
+
 ### Security
 
 - Updated the locked dependencies; `pip-audit` reported 33 advisories in 9 packages
