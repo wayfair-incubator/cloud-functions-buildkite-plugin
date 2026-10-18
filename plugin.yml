@@ -23,7 +23,7 @@ configuration:
       description: "Service account key (JSON). May also be given as the gcp_service_account environment variable"
     custom_image:
       type: string
-      description: "Docker image used to run the deployment (default: python:3.13-slim)"
+      description: "Docker image used to run the deployment (default: python:3.15-slim)"
     debug_mode:
       type: boolean
       description: "Log extra details (default: false)"

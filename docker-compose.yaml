@@ -18,30 +18,9 @@ services:
     volumes:
       - "./hooks:/plugin"
 
-  cloud-functions-buildkite-plugin: &cloud-functions-buildkite-plugin
-    build:
-      dockerfile: "docker/devbox.dockerfile"
-      context: .
-    image: wayfairossdev/cloud-functions-buildkite-plugin:${IMAGE_VERSION:-latest}
-    environment:
-      - gcp_project=wf-gcp-us-ae-ops-dev
-      - dataset_schema_directory=junk/test
-    volumes:
-      - "./:/app"
-
   devbox: &devbox
     build:
       dockerfile: "./docker/devbox.dockerfile"
-      context: "."
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
-    volumes:
-      - "./:/app"
-
-  # Python 3.14 development box (when available)
-  devbox-py314:
-    build:
-      dockerfile: "./docker/devbox-py314.dockerfile"
       context: "."
     stdin_open: true # docker run -i
     tty: true        # docker run -t
@@ -90,6 +69,7 @@ services:
     volumes:
       - "./:/app"
 
+  # Refresh uv.lock and plugin_scripts/requirements.lock (add --upgrade to bump every pin)
   lock-requirements:
     <<: *devbox
     entrypoint: "/bin/bash"
