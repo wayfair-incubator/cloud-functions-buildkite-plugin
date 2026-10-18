@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `wait` (default `true`) and `wait_timeout` (seconds, default `600`) options. After updating the
+  function the plugin now polls the Cloud Functions operation until it is done and fails the step
+  with the error of the operation (for example a failed build). **BREAKING (behaviour):** steps whose
+  deployment was accepted but then failed used to pass; set `wait: false` for the old behaviour.
+
 ### Changed
 
 - Renovate is the only dependency updater (there is no Dependabot config). `renovate.json` now

@@ -2,6 +2,7 @@ import ast
 import json
 import logging
 import os
+import time
 import zipfile
 from pathlib import Path
 from pprint import pformat
@@ -207,6 +208,61 @@ def _validate_if_path_exists() -> bool:
     return exists
 
 
+DEFAULT_WAIT_TIMEOUT = 600
+_POLL_INTERVAL_SECONDS = 5
+
+
+def _wait_for_operation(service: Any, operation_name: str, timeout: float) -> None:
+    """
+    Wait until a long-running Cloud Functions operation has finished.
+
+    `functions.patch` only starts the deployment; the build and rollout happen
+    afterwards and are reported by the returned operation.
+
+    Args:
+        service: The cloudfunctions API client
+        operation_name: Name of the operation returned by the patch call
+        timeout: Seconds to wait before giving up
+
+    Raises:
+        DeployFailed: If the operation fails or does not finish in time
+    """
+    deadline = time.monotonic() + timeout
+    _logger.info(f"Waiting for operation {operation_name} (up to {timeout:.0f}s)...")
+
+    while True:
+        operation = service.operations().get(name=operation_name).execute()
+        if operation.get("done"):
+            error = operation.get("error")
+            if error:
+                message = f"Deployment operation failed: {error.get('message', error)}"
+                raise DeployFailed(message)
+            _logger.info("Deployment operation finished successfully")
+            return
+
+        if time.monotonic() + _POLL_INTERVAL_SECONDS > deadline:
+            raise DeployFailed(
+                f"Timed out after {timeout:.0f}s waiting for operation "
+                f"{operation_name}; the deployment may still complete"
+            )
+        time.sleep(_POLL_INTERVAL_SECONDS)
+
+
+def _wait_enabled() -> bool:
+    """Whether to wait for the deployment operation (the `wait` option)."""
+    return os.environ.get("wait", "true").lower() in ("true", "on", "yes", "1")
+
+
+def _wait_timeout() -> float:
+    """Seconds to wait for the deployment operation (the `wait_timeout` option)."""
+    raw = os.environ.get("wait_timeout") or str(DEFAULT_WAIT_TIMEOUT)
+    try:
+        timeout = float(raw)
+    except ValueError as e:
+        raise MissingConfigError("wait_timeout (a number of seconds)") from e
+    return timeout
+
+
 def _handle_exception(e: Exception, debug_mode: bool) -> None:
     """
     Handle exceptions during deployment.
@@ -306,6 +362,11 @@ def _deploy(debug_mode: bool) -> None:
 
             if debug_mode:
                 _logger.debug(f"Response: {pformat(response)}")
+
+            if _wait_enabled():
+                _wait_for_operation(service, response["name"], _wait_timeout())
+            else:
+                _logger.info("Not waiting for the deployment to finish (wait is off)")
         except Exception as e:
             deploy_failed = True
             _handle_exception(e, debug_mode)

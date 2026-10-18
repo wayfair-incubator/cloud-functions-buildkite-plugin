@@ -68,6 +68,18 @@ fi
 
 cloud_function_directory="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_DIRECTORY}"
 
+# plugin.yml booleans arrive as strings: normalise to true/false
+wait="true"
+if [[ ! ${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_WAIT:-true} =~ ^(true|on|yes|1)$ ]]; then
+	wait="false"
+fi
+
+wait_timeout="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_WAIT_TIMEOUT:-600}"
+if [[ ! ${wait_timeout} =~ ^[0-9]+$ ]]; then
+	echo "ERROR: wait_timeout must be a number of seconds, not '${wait_timeout}'"
+	exit 1
+fi
+
 # The service account key comes from the `gcp_service_account` plugin option or,
 # as before, from a `gcp_service_account` environment variable.
 gcp_service_account="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_SERVICE_ACCOUNT:-${gcp_service_account:-}}"
@@ -83,6 +95,7 @@ if [[ ${debug_mode} == "true" ]]; then
 	echo "GCP Region: ${gcp_region}"
 	echo "Cloud Function Name: ${cloud_function_name}"
 	echo "Cloud Function Directory: ${cloud_function_directory}"
+	echo "Wait for deployment: ${wait} (timeout ${wait_timeout}s)"
 	echo "Docker Image: ${image}"
 fi
 
@@ -104,6 +117,8 @@ args+=(
 	"--env" "cloud_function_name=$cloud_function_name"
 	"--env" "cloud_function_directory=$cloud_function_directory"
 	"--env" "debug_mode=$debug_mode"
+	"--env" "wait=$wait"
+	"--env" "wait_timeout=$wait_timeout"
 	"--env" "credentials"
 )
 

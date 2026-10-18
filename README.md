@@ -55,6 +55,17 @@ Example: `directory/function-code`
 
 ### Optional
 
+### `wait` (optional, boolean)
+
+Wait for the deployment to finish and fail the step if it fails. Updating a function only starts a
+long-running operation (build, rollout); with `wait: false` the step succeeds as soon as the update was
+accepted (the behaviour before this option existed). Default: `true`.
+
+### `wait_timeout` (optional, integer)
+
+Seconds to wait for the deployment to finish. The step fails when it takes longer (the deployment
+may still complete). Default: `600`.
+
 ### `custom_image` (optional, string)
 
 Docker image the deployment runs in. Default: `python:3.13-slim`.
