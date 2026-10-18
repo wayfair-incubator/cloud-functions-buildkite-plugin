@@ -2,7 +2,10 @@ name: "Unit Tests"
 on:
   pull_request: {}
   push:
-      branches: ["main"]
+    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -14,42 +17,43 @@ jobs:
       fail-fast: false
     steps:
       - name: Check out code
-        uses: actions/checkout@v5
-      
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
-      
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+
       - name: Install dependencies
-        run: |
-          uv pip install --system -r requirements.txt -r requirements-test.txt
+        run: uv pip install --system -r requirements.txt -r requirements-test.txt
 
       - name: Run pytest
         run: pytest --cov plugin_scripts/ tests --cov-report xml:coverage-${{ matrix.python-version }}.xml --junitxml=test-results-${{ matrix.python-version }}.xml
 
       - name: Upload pytest test results artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pytest-results-${{ matrix.python-version }}
           path: test-results-${{ matrix.python-version }}.xml
         if: ${{ always() }}
 
       - name: Upload coverage results artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pytest-coverage-${{ matrix.python-version }}
           path: coverage-${{ matrix.python-version }}.xml
         if: ${{ always() }}
 
       - name: Publish coverage results to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: coverage-${{ matrix.python-version }}.xml
+          files: coverage-${{ matrix.python-version }}.xml
           fail_ci_if_error: false
         if: ${{ always() }}

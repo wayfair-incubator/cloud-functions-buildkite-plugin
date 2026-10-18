@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Workflows run with `permissions: contents: read`, checkouts no longer persist the token, and
+  every action is pinned by full commit SHA. The `curl | sh` installers of `uv` are replaced by
+  `astral-sh/setup-uv` with `uv` pinned to 0.13.1; the unused composite action that used one is removed.
+
+### Fixed
+
+- The `Bash shfmt` check failed on every pull request (`shfmt@latest` needs a newer Go than the
+  builder image): shfmt is pinned to v3.14.1 and built with Go 1.27, and it now fails when a file
+  is not formatted (`-s -d`; it used to rewrite the files and always pass).
+- `codecov/codecov-action` was given an `file` input that does not exist; it is `files`.
+- `buildkite/plugin-tester` and `plugin-linter` are pinned in `docker-compose.yaml`.
+
+### Changed
+
+- GitHub Actions updated: `actions/checkout` v7.0.1, `actions/setup-python` v7.0.0,
+  `actions/upload-artifact` v7.0.2, `codecov/codecov-action` v7.1.1 and
+  `github-action-renovate-config-validator` v2.4.1 (supersedes the open Renovate PRs).
+
 ## [v0.2.0] - 2025-11-02
 
 ### Changed (Breaking)
