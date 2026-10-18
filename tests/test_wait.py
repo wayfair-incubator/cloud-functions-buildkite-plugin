@@ -84,7 +84,7 @@ def _deploy_with_patch_response(mocker, monkeypatch, wait):
     ).functions.return_value
     functions.get.return_value.execute.return_value = {"sourceArchiveUrl": "gs://b/o"}
     functions.patch.return_value.execute.return_value = {"name": "operations/op"}
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
     mocker.patch("plugin_scripts.deploy._zip_directory")
     mocker.patch("plugin_scripts.deploy._upload_source_code_using_archive_url")
     return mocker.patch("plugin_scripts.deploy._wait_for_operation")

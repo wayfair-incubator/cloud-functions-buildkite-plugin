@@ -78,9 +78,11 @@ Log extra details. Default: `false`.
 
 How many times pulling the image is tried. Default: `3`.
 
-## Secret
+## Credentials
 
-The deployment needs a service account key (JSON). Pass it with the `gcp_service_account` plugin option or a `gcp_service_account` environment variable, and store it [securely](https://buildkite.com/docs/pipelines/secrets)!
+Either of:
+
+**A service account key (JSON)**, passed with the `gcp_service_account` plugin option or a `gcp_service_account` environment variable. Store it [securely](https://buildkite.com/docs/pipelines/secrets)!
 
 ```yaml
 steps:
@@ -92,6 +94,8 @@ steps:
           cloud_function_directory: "directory/function-code"
           gcp_service_account: "${GCP_SA_KEY}" # or set a gcp_service_account env var
 ```
+
+**Application Default Credentials**, when no key is given: the identity of the agent's machine (GCE/GKE metadata server, Workload Identity), or the credentials file named by `GOOGLE_APPLICATION_CREDENTIALS` on the agent, which is mounted read-only into the container. No long-lived key has to be stored in Buildkite. The identity needs permission to update the function (for example `roles/cloudfunctions.developer`) and to act as its runtime service account. A federated (`external_account`) credentials file that points at other files, such as a token file, will not find them inside the container; use the metadata server in that case.
 
 The key is handed to the container by variable name only, so it never appears on a command line. The container does not receive the rest of the job environment (only the proxy variables `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and their lowercase forms, when set).
 

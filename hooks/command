@@ -80,13 +80,25 @@ if [[ ! ${wait_timeout} =~ ^[0-9]+$ ]]; then
 	exit 1
 fi
 
-# The service account key comes from the `gcp_service_account` plugin option or,
-# as before, from a `gcp_service_account` environment variable.
+# Credentials: a service account key (the `gcp_service_account` plugin option or,
+# as before, a `gcp_service_account` environment variable), or else Application
+# Default Credentials (the metadata server of the agent's cloud identity, Workload
+# Identity, or the file named by GOOGLE_APPLICATION_CREDENTIALS, which is mounted
+# read-only).
 gcp_service_account="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GCP_SERVICE_ACCOUNT:-${gcp_service_account:-}}"
 
-if [ -z "${gcp_service_account}" ]; then
-	echo "ERROR: gcp service account (gcp_service_account) not set"
-	exit 1
+adc_credentials_file=""
+if [ -n "${gcp_service_account}" ]; then
+	echo "--- :key: Authenticating with the gcp_service_account key"
+else
+	echo "--- :key: gcp_service_account is not set, using Application Default Credentials"
+	if [[ -n ${GOOGLE_APPLICATION_CREDENTIALS:-} ]]; then
+		if [[ ! -f ${GOOGLE_APPLICATION_CREDENTIALS} ]]; then
+			echo "ERROR: GOOGLE_APPLICATION_CREDENTIALS points to a file that does not exist: ${GOOGLE_APPLICATION_CREDENTIALS}"
+			exit 1
+		fi
+		adc_credentials_file="${GOOGLE_APPLICATION_CREDENTIALS}"
+	fi
 fi
 
 if [[ ${debug_mode} == "true" ]]; then
@@ -119,8 +131,16 @@ args+=(
 	"--env" "debug_mode=$debug_mode"
 	"--env" "wait=$wait"
 	"--env" "wait_timeout=$wait_timeout"
-	"--env" "credentials"
 )
+
+if [[ -n ${gcp_service_account} ]]; then
+	args+=("--env" "credentials")
+elif [[ -n $adc_credentials_file ]]; then
+	args+=(
+		"--volume" "${adc_credentials_file}:/run/secrets/google-adc.json:ro"
+		"--env" "GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/google-adc.json"
+	)
+fi
 
 # Add the image in before the shell and command
 args+=("${image}")

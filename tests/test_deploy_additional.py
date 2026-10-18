@@ -13,7 +13,7 @@ def test__upload_source_code_using_archive_url_exception(mocker):
     """Test upload fails with archive URL."""
     mock_storage = mocker.patch("plugin_scripts.deploy.storage")
     mock_storage.Client.side_effect = Exception("Storage error")
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
 
     mock_data = mocker.Mock()
     mock_data.read.return_value = b"test data"
@@ -129,7 +129,7 @@ def test__deploy_with_source_archive_url(mocker, monkeypatch):
     mock_discovery.build.return_value = mock_service
 
     # Mock other dependencies
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
     mocker.patch("plugin_scripts.deploy._zip_directory")
     mocker.patch("plugin_scripts.deploy._wait_for_operation")
     mock_upload_archive = mocker.patch(
@@ -175,7 +175,7 @@ def test__deploy_with_upload_url(mocker, monkeypatch):
     mock_discovery.build.return_value = mock_service
 
     # Mock other dependencies
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
     mocker.patch("plugin_scripts.deploy._zip_directory")
     mocker.patch("plugin_scripts.deploy._wait_for_operation")
     mock_upload_url = mocker.patch(
@@ -217,7 +217,7 @@ def test__deploy_with_debug_mode(mocker, monkeypatch):
     mock_discovery.build.return_value = mock_service
 
     # Mock other dependencies
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
     mocker.patch("plugin_scripts.deploy._zip_directory")
     mocker.patch("plugin_scripts.deploy._wait_for_operation")
     mocker.patch("plugin_scripts.deploy._upload_source_code_using_upload_url")
@@ -252,7 +252,7 @@ def test__deploy_function_not_found(mocker, monkeypatch):
     mock_discovery.build.return_value = mock_service
 
     # Mock credentials
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
 
     # Execute and expect DeployFailed
     with pytest.raises(DeployFailed) as exc_info:
@@ -290,7 +290,7 @@ def test__deploy_upload_url_generation_fails(mocker, monkeypatch):
     mock_discovery.build.return_value = mock_service
 
     # Mock other dependencies
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
     mocker.patch("plugin_scripts.deploy._zip_directory")
 
     # Execute and expect DeployFailed
@@ -331,7 +331,7 @@ def test__deploy_patch_fails(mocker, monkeypatch):
     mock_discovery.build.return_value = mock_service
 
     # Mock other dependencies
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
     mocker.patch("plugin_scripts.deploy._zip_directory")
     mocker.patch("plugin_scripts.deploy._upload_source_code_using_upload_url")
 
@@ -355,7 +355,7 @@ def test__deploy_general_exception(mocker, monkeypatch):
     mock_discovery.build.side_effect = Exception("General error")
 
     # Mock credentials
-    mocker.patch("plugin_scripts.deploy._get_bq_credentials")
+    mocker.patch("plugin_scripts.deploy._get_credentials")
 
     # Execute and expect DeployFailed
     with pytest.raises(DeployFailed) as exc_info:

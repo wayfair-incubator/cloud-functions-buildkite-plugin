@@ -10,6 +10,8 @@ from tempfile import TemporaryFile
 from typing import Any
 from urllib.parse import urlparse
 
+import google.auth
+import google.auth.exceptions
 import requests
 from google.cloud import storage
 from google.oauth2 import service_account
@@ -27,6 +29,8 @@ _logger.setLevel(logging.INFO)
 console = logging.StreamHandler()
 _logger.addHandler(console)
 
+
+_SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
 
 # Never uploaded: version control data, local secrets and build leftovers
 _EXCLUDED_DIRECTORIES = {".git", "__pycache__", "node_modules"}
@@ -71,21 +75,36 @@ def _zip_directory(handler: zipfile.ZipFile) -> None:
     _logger.info(f"Successfully zipped {file_count} files")
 
 
-def _get_bq_credentials() -> service_account.Credentials:
+def _get_credentials() -> Any:
     """
-    Get Google Cloud credentials from environment variable.
+    Get Google Cloud credentials.
+
+    Uses the service account key in the `credentials` environment variable when
+    there is one, otherwise Application Default Credentials (the metadata server
+    of the agent's cloud identity, Workload Identity, or the file named by
+    GOOGLE_APPLICATION_CREDENTIALS).
 
     Returns:
-        Service account credentials
+        Google credentials
 
     Raises:
-        MissingConfigError: If credentials are not set
-        json.JSONDecodeError: If credentials JSON is invalid
+        DeployFailed: If there is no key and no Application Default Credentials
+        ValueError: If the service account key is not valid JSON
     """
     credentials_str = os.environ.get("credentials")
     if not credentials_str:
-        _logger.error("Missing credentials configuration")
-        raise MissingConfigError("credentials")
+        _logger.info(
+            "No service account key given, using Application Default Credentials"
+        )
+        try:
+            credentials, _ = google.auth.default(scopes=_SCOPES)
+        except google.auth.exceptions.DefaultCredentialsError as e:
+            _logger.error(f"No Application Default Credentials found: {e}")
+            raise DeployFailed(
+                "No credentials: set `gcp_service_account` or make Application "
+                f"Default Credentials available to the agent ({e})"
+            ) from e
+        return credentials
 
     try:
         svc = json.loads(credentials_str)
@@ -113,7 +132,7 @@ def _upload_source_code_using_archive_url(archive_url: str, data: Any) -> None:
     blob_name = object_path.path.lstrip("/")
 
     try:
-        storage_client = storage.Client(credentials=_get_bq_credentials())
+        storage_client = storage.Client(credentials=_get_credentials())
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
         blob.upload_from_string(data.read())
@@ -172,7 +191,6 @@ def _validate_env_variables() -> None:
         "gcp_region": os.environ.get("gcp_region"),
         "cloud_function_name": os.environ.get("cloud_function_name"),
         "cloud_function_directory": os.environ.get("cloud_function_directory"),
-        "credentials": os.environ.get("credentials"),
     }
 
     for var_name, var_value in required_vars.items():
@@ -305,7 +323,7 @@ def _deploy(debug_mode: bool) -> None:
         _logger.info(f"Deploying function: {function_path}")
 
         service = discovery.build(
-            "cloudfunctions", "v1", credentials=_get_bq_credentials()
+            "cloudfunctions", "v1", credentials=_get_credentials()
         )
         cloud_functions = service.projects().locations().functions()
 

@@ -90,11 +90,40 @@ teardown() {
   done
 }
 
-@test "missing service account fails with a readable error" {
+@test "without a key and without a credentials file, Application Default Credentials are used" {
   unset gcp_service_account
   run "${HOOK}"
+  [ "$status" -eq 0 ]
+  [[ $output == *"Application Default Credentials"* ]]
+  ! grep -qx -- "credentials" "${DOCKER_LOG}.create"
+  ! grep -qx -- "--volume" "${DOCKER_LOG}.create"
+}
+
+@test "GOOGLE_APPLICATION_CREDENTIALS is mounted read-only when there is no key" {
+  unset gcp_service_account
+  echo '{}' >"${TEST_DIR}/adc.json"
+  export GOOGLE_APPLICATION_CREDENTIALS="${TEST_DIR}/adc.json"
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "${TEST_DIR}/adc.json:/run/secrets/google-adc.json:ro" "${DOCKER_LOG}.create"
+  grep -qx -- "GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/google-adc.json" "${DOCKER_LOG}.create"
+}
+
+@test "a GOOGLE_APPLICATION_CREDENTIALS file that does not exist is an error" {
+  unset gcp_service_account
+  export GOOGLE_APPLICATION_CREDENTIALS="${TEST_DIR}/missing.json"
+  run "${HOOK}"
   [ "$status" -eq 1 ]
-  [[ $output == *"ERROR: gcp service account"* ]]
+  [[ $output == *"does not exist"* ]]
+}
+
+@test "the key wins over GOOGLE_APPLICATION_CREDENTIALS and nothing is mounted" {
+  echo '{}' >"${TEST_DIR}/adc.json"
+  export GOOGLE_APPLICATION_CREDENTIALS="${TEST_DIR}/adc.json"
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "credentials" "${DOCKER_LOG}.create"
+  ! grep -qx -- "--volume" "${DOCKER_LOG}.create"
 }
 
 @test "a failed docker pull fails the step" {
