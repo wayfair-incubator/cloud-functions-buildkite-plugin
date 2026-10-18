@@ -168,6 +168,14 @@ teardown() {
   grep -qx -- "python:3.12-slim" "${DOCKER_LOG}.create"
   grep -q "uv==[0-9]" "${DOCKER_LOG}.create"
   grep -q -- "--require-hashes" "${DOCKER_LOG}.create"
+  grep -q -- "uv export --frozen --no-dev" "${DOCKER_LOG}.create"
+}
+
+@test "the lock file and project file are copied into the container" {
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -q "^cp .*/uv.lock fakecontainer:/workdir/plugin_scripts/uv.lock" "${DOCKER_LOG}"
+  grep -q "^cp .*/pyproject.toml fakecontainer:/workdir/plugin_scripts/pyproject.toml" "${DOCKER_LOG}"
 }
 
 @test "the default image is python 3.15" {

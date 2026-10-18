@@ -70,7 +70,7 @@ services:
     volumes:
       - "./:/app"
 
-  # Refresh uv.lock and plugin_scripts/requirements.lock (add --upgrade to bump every pin)
+  # Refresh uv.lock (add --upgrade to bump every pin)
   lock-requirements:
     <<: *devbox
     entrypoint: "/bin/bash"

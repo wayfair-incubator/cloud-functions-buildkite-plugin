@@ -85,7 +85,7 @@ jobs:
           config_file_path: 'renovate.json'
 
   lock:
-    name: Lockfiles are up to date
+    name: Lockfile is up to date
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -97,8 +97,3 @@ jobs:
           version: "0.13.1"
       - name: Check uv.lock
         run: uv lock --check
-      - name: Check the exported container requirements
-        run: |
-          uv export --locked --no-dev --no-emit-project --format requirements-txt --no-header \
-            --output-file "${RUNNER_TEMP}/requirements.lock"
-          diff plugin_scripts/requirements.lock "${RUNNER_TEMP}/requirements.lock"

@@ -47,9 +47,9 @@ the `release` event.)
 ## Dependency updates
 
 Dependencies are updated by [Renovate](https://docs.renovatebot.com/) (`renovate.json`); there is no
-Dependabot. After changing a dependency, refresh both lock files with
-`docker compose run --rm lock-requirements` (or `uv lock` followed by the `uv export` command in
-`docker/lock_requirements.sh`): CI fails when `uv.lock` or `plugin_scripts/requirements.lock` is stale.
+Dependabot. After changing a dependency, refresh `uv.lock` with `docker compose run --rm lock-requirements`
+(or `uv lock`): CI fails when it is stale. It is the only lock file; the deploy container exports its
+hashed requirements from it, so Renovate's lock file maintenance PRs need no manual follow-up.
 
 ## Other Ways to Contribute
 

@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `plugin_scripts/requirements.lock` is gone: `uv.lock` is the only lock file. The deploy container
+  runs `uv export --frozen --no-dev` on the `pyproject.toml` and `uv.lock` the hook copies in and installs
+  the result with `--require-hashes`, exactly the same hash-locked set as before. Renovate's lock file
+  maintenance and dependency PRs now only touch `uv.lock`, so there is no second file that CI could find
+  stale. The "lockfile is up to date" CI job now only runs `uv lock --check`.
+
 ## [1.0.0] - 2026-10-18
 
 The first release since 0.2.0. It contains breaking behaviour changes; see "Upgrading to 1.0.0" in the
