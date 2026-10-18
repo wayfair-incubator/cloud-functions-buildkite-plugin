@@ -351,3 +351,51 @@ def test_zip_directory_skips_secrets_and_build_leftovers(tmp_path, monkeypatch):
 
     # sorted, so the archive is reproducible
     assert zipfile.ZipFile(buffer).namelist() == ["main.py", "pkg/a.py", "pkg/b.py"]
+
+
+def _zipped_names(directory, monkeypatch, exclude=""):
+    import io
+    import zipfile
+
+    monkeypatch.setenv("cloud_function_directory", str(directory))
+    monkeypatch.setenv("exclude_patterns", exclude)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as handler:
+        deploy._zip_directory(handler)
+    return zipfile.ZipFile(buffer).namelist()
+
+
+def _tree(root):
+    for name in (
+        "main.py",
+        "docs/a.md",
+        "docs/img/b.png",
+        "tests/test_main.py",
+        "x.txt",
+    ):
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("")
+
+
+def test_exclude_patterns_match_files_and_directories(tmp_path, monkeypatch):
+    _tree(tmp_path)
+    names = _zipped_names(tmp_path, monkeypatch, "docs\ntests/*\n*.txt")
+    assert names == ["main.py"]
+
+
+def test_exclude_pattern_for_a_directory_covers_nested_files(tmp_path, monkeypatch):
+    _tree(tmp_path)
+    names = _zipped_names(tmp_path, monkeypatch, "docs/img")
+    assert names == ["docs/a.md", "main.py", "tests/test_main.py", "x.txt"]
+
+
+def test_no_exclude_patterns_keeps_everything(tmp_path, monkeypatch):
+    _tree(tmp_path)
+    assert len(_zipped_names(tmp_path, monkeypatch, "")) == 5
+
+
+def test_excluding_every_file_fails(tmp_path, monkeypatch):
+    _tree(tmp_path)
+    with pytest.raises(deploy.DeployFailed, match="excluded"):
+        _zipped_names(tmp_path, monkeypatch, "*")

@@ -205,3 +205,19 @@ teardown() {
   [ "$status" -eq 1 ]
   [[ $output == *"generation must be 1 or 2"* ]]
 }
+
+@test "exclude patterns are passed to the container newline separated, never interpolated" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_EXCLUDE_0='docs'
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_EXCLUDE_1='tests/$(touch PWNED)'
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- 'exclude_patterns=docs' "${DOCKER_LOG}.create"
+  grep -qx -- 'tests/$(touch PWNED)' "${DOCKER_LOG}.create"
+  [ ! -e PWNED ]
+}
+
+@test "no exclude patterns gives an empty value" {
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- 'exclude_patterns=' "${DOCKER_LOG}.create"
+}

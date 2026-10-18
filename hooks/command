@@ -86,6 +86,23 @@ if [[ ! ${wait_timeout} =~ ^[0-9]+$ ]]; then
 	exit 1
 fi
 
+# collect_list <NAME>: join BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_<NAME>_0, _1, ... (a
+# plugin array) into a newline-separated string
+function collect_list {
+	local i=0 name joined=""
+	while true; do
+		name="BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_${1}_${i}"
+		if [[ -z ${!name+x} ]]; then
+			break
+		fi
+		joined="${joined}${!name}"$'\n'
+		i=$((i + 1))
+	done
+	printf '%s' "${joined%$'\n'}"
+}
+
+exclude_patterns=$(collect_list EXCLUDE)
+
 # Credentials: a service account key (the `gcp_service_account` plugin option or,
 # as before, a `gcp_service_account` environment variable), or else Application
 # Default Credentials (the metadata server of the agent's cloud identity, Workload
@@ -113,6 +130,7 @@ if [[ ${debug_mode} == "true" ]]; then
 	echo "GCP Region: ${gcp_region}"
 	echo "Cloud Function Name: ${cloud_function_name}"
 	echo "Cloud Function Directory: ${cloud_function_directory}"
+	echo "Exclude: ${exclude_patterns:-<none>}"
 	echo "Generation: ${generation}"
 	echo "Wait for deployment: ${wait} (timeout ${wait_timeout}s)"
 	echo "Docker Image: ${image}"
@@ -136,6 +154,7 @@ args+=(
 	"--env" "cloud_function_name=$cloud_function_name"
 	"--env" "cloud_function_directory=$cloud_function_directory"
 	"--env" "debug_mode=$debug_mode"
+	"--env" "exclude_patterns=$exclude_patterns"
 	"--env" "generation=$generation"
 	"--env" "wait=$wait"
 	"--env" "wait_timeout=$wait_timeout"

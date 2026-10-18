@@ -18,6 +18,11 @@ configuration:
     cloud_function_directory:
       type: string
       description: "Directory of the repository that holds the function's code"
+    exclude:
+      type: array
+      items:
+        type: string
+      description: "Shell-style globs, relative to cloud_function_directory, of files that are not uploaded (default: none)"
     generation:
       type: integer
       enum: [1, 2]
