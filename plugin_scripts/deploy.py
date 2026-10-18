@@ -143,7 +143,7 @@ def _upload_source_code_using_archive_url(archive_url: str, data: Any) -> None:
 
 
 def _upload_source_code_using_upload_url(
-    upload_url: str, debug_mode: bool, data: Any
+    upload_url: str, debug_mode: bool, data: Any, content_length_range: bool = True
 ) -> None:
     """
     Upload source code using upload URL.
@@ -152,6 +152,8 @@ def _upload_source_code_using_upload_url(
         upload_url: Upload URL for the cloud function
         debug_mode: Whether to log debug information
         data: File-like object containing the zipped source code
+        content_length_range: Send the 1st gen size limit header (a 2nd gen signed
+            URL does not sign it)
 
     Raises:
         DeployFailed: If upload fails
@@ -159,10 +161,9 @@ def _upload_source_code_using_upload_url(
     # Prepare Header and data for PUT request
     # https://cloud.google.com/functions/docs/reference/rest/v1/projects.locations.functions/generateUploadUrl
     _logger.info("Uploading source code using upload URL")
-    headers = {
-        "content-type": "application/zip",
-        "x-goog-content-length-range": "0,104857600",
-    }
+    headers = {"content-type": "application/zip"}
+    if content_length_range:
+        headers["x-goog-content-length-range"] = "0,104857600"
 
     try:
         response: Response = requests.put(
@@ -230,7 +231,7 @@ DEFAULT_WAIT_TIMEOUT = 600
 _POLL_INTERVAL_SECONDS = 5
 
 
-def _wait_for_operation(service: Any, operation_name: str, timeout: float) -> None:
+def _wait_for_operation(operations: Any, operation_name: str, timeout: float) -> None:
     """
     Wait until a long-running Cloud Functions operation has finished.
 
@@ -238,7 +239,7 @@ def _wait_for_operation(service: Any, operation_name: str, timeout: float) -> No
     afterwards and are reported by the returned operation.
 
     Args:
-        service: The cloudfunctions API client
+        operations: The API's operations resource (it has a `get` method)
         operation_name: Name of the operation returned by the patch call
         timeout: Seconds to wait before giving up
 
@@ -249,7 +250,7 @@ def _wait_for_operation(service: Any, operation_name: str, timeout: float) -> No
     _logger.info(f"Waiting for operation {operation_name} (up to {timeout:.0f}s)...")
 
     while True:
-        operation = service.operations().get(name=operation_name).execute()
+        operation = operations.get(name=operation_name).execute()
         if operation.get("done"):
             error = operation.get("error")
             if error:
@@ -296,9 +297,9 @@ def _handle_exception(e: Exception, debug_mode: bool) -> None:
         _logger.debug(f"Exception details: {pformat(e)}")
 
 
-def _deploy(debug_mode: bool) -> None:
+def _deploy_gen1(debug_mode: bool) -> None:
     """
-    Deploy the cloud function to Google Cloud Platform.
+    Deploy a 1st generation cloud function (Cloud Functions v1 API).
 
     Args:
         debug_mode: Whether to enable debug logging
@@ -382,7 +383,9 @@ def _deploy(debug_mode: bool) -> None:
                 _logger.debug(f"Response: {pformat(response)}")
 
             if _wait_enabled():
-                _wait_for_operation(service, response["name"], _wait_timeout())
+                _wait_for_operation(
+                    service.operations(), response["name"], _wait_timeout()
+                )
             else:
                 _logger.info("Not waiting for the deployment to finish (wait is off)")
         except Exception as e:
@@ -394,6 +397,115 @@ def _deploy(debug_mode: bool) -> None:
 
     if deploy_failed:
         raise DeployFailed("Deployment failed due to errors")
+
+
+def _deploy_gen2(debug_mode: bool) -> None:
+    """
+    Deploy a 2nd generation function (Cloud Run functions, Cloud Functions v2 API).
+
+    The archive is uploaded to a signed URL and only the function's source
+    location is patched; every other setting stays as it is.
+
+    Args:
+        debug_mode: Whether to enable debug logging
+
+    Raises:
+        DeployFailed: If deployment fails
+    """
+    _logger.info("Starting 2nd generation cloud function deployment...")
+
+    try:
+        gcp_project = os.environ.get("gcp_project")
+        gcp_region = os.environ.get("gcp_region")
+        cloud_function_name = os.environ.get("cloud_function_name")
+
+        parent = f"projects/{gcp_project}/locations/{gcp_region}"
+        function_path = f"{parent}/functions/{cloud_function_name}"
+        _logger.info(f"Deploying function: {function_path}")
+
+        service = discovery.build(
+            "cloudfunctions", "v2", credentials=_get_credentials()
+        )
+        locations = service.projects().locations()
+        cloud_functions = locations.functions()
+
+        try:
+            function = cloud_functions.get(name=function_path).execute()
+            _logger.info(f"Found existing cloud function: {cloud_function_name}")
+        except Exception as e:
+            _logger.error(f"Failed to get cloud function: {e}")
+            raise DeployFailed(
+                f"Cloud function not found: {cloud_function_name}"
+            ) from e
+
+        if function.get("environment") == "GEN_1":
+            raise DeployFailed(
+                f"{cloud_function_name} is a 1st generation function; "
+                "use `generation: 1` (the default)"
+            )
+
+        if debug_mode:
+            summary = {
+                key: function.get(key)
+                for key in ("name", "state", "environment", "updateTime")
+            }
+            _logger.debug(f"Function summary: {pformat(summary)}")
+
+        with TemporaryFile() as data:
+            file_handler = zipfile.ZipFile(data, mode="w")
+            _zip_directory(file_handler)
+            file_handler.close()
+            data.seek(0)
+
+            try:
+                upload = cloud_functions.generateUploadUrl(
+                    parent=parent, body={"environment": "GEN_2"}
+                ).execute()
+                _logger.info("Generated upload URL for source code")
+            except Exception as e:
+                _logger.error(f"Failed to generate upload URL: {e}")
+                raise DeployFailed(f"Failed to generate upload URL: {e}") from e
+
+            _upload_source_code_using_upload_url(
+                upload["uploadUrl"], debug_mode, data, content_length_range=False
+            )
+
+        _logger.info("Patching cloud function...")
+        response = cloud_functions.patch(
+            name=function_path,
+            updateMask="buildConfig.source.storageSource",
+            body={
+                "buildConfig": {"source": {"storageSource": upload["storageSource"]}}
+            },
+        ).execute()
+        _logger.info("Successfully patched Cloud Function")
+        _logger.info(f"Operation Name: {response['name']}")
+
+        if _wait_enabled():
+            _wait_for_operation(
+                locations.operations(), response["name"], _wait_timeout()
+            )
+        else:
+            _logger.info("Not waiting for the deployment to finish (wait is off)")
+    except Exception as e:
+        _handle_exception(e, debug_mode)
+        raise DeployFailed("Deployment failed due to errors") from e
+
+
+def _deploy(debug_mode: bool) -> None:
+    """
+    Deploy the cloud function to Google Cloud Platform.
+
+    Args:
+        debug_mode: Whether to enable debug logging
+
+    Raises:
+        DeployFailed: If deployment fails
+    """
+    if os.environ.get("generation", "1") == "2":
+        _deploy_gen2(debug_mode)
+    else:
+        _deploy_gen1(debug_mode)
 
 
 def main() -> None:

@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README: what the plugin does and does not do (updates the source of an existing 1st generation
   function through the v1 API), an "Upgrading to 1.0.0" section, the current options, credentials and
   project layout.
+- `generation` option (`1`, the default, or `2`). `generation: 2` deploys 2nd generation functions
+  (Cloud Run functions) through the Cloud Functions v2 API: it uploads the archive to a signed
+  URL and patches only `buildConfig.source.storageSource`, then waits for the operation like
+  generation 1 does. Without the option nothing changes.
 
 ### Changed
 

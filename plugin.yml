@@ -18,6 +18,10 @@ configuration:
     cloud_function_directory:
       type: string
       description: "Directory of the repository that holds the function's code"
+    generation:
+      type: integer
+      enum: [1, 2]
+      description: "Generation of the function: 1 (Cloud Functions v1 API) or 2 (Cloud Run functions, v2 API) (default: 1)"
     gcp_service_account:
       type: string
       description: "Service account key (JSON). May also be given as the gcp_service_account environment variable. Without it, Application Default Credentials are used"
