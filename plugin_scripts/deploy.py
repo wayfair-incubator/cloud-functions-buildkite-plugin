@@ -71,12 +71,15 @@ def _is_excluded(relative_path: Path, patterns: list[str] | None = None) -> bool
     )
 
 
-def _zip_directory(handler: zipfile.ZipFile) -> None:
+def _zip_directory(handler: zipfile.ZipFile) -> list[str]:
     """
     Zip the cloud function directory for deployment.
 
     Args:
         handler: ZipFile handler to write files to
+
+    Returns:
+        The names of the files that were added, sorted
 
     Raises:
         ValueError: If cloud_function_directory is not set
@@ -94,6 +97,7 @@ def _zip_directory(handler: zipfile.ZipFile) -> None:
     if patterns:
         _logger.info(f"Excluding: {', '.join(patterns)}")
 
+    names: list[str] = []
     file_count = 0
     excluded_count = 0
     for file_path in sorted(cloud_function_directory.rglob("*")):
@@ -104,6 +108,7 @@ def _zip_directory(handler: zipfile.ZipFile) -> None:
             excluded_count += 1
             continue
         handler.write(file_path, arcname)
+        names.append(arcname.as_posix())
         file_count += 1
 
     if patterns and file_count == 0:
@@ -114,6 +119,7 @@ def _zip_directory(handler: zipfile.ZipFile) -> None:
     _report["files"] = file_count
     _report["excluded"] = excluded_count
     _logger.info(f"Successfully zipped {file_count} files ({excluded_count} excluded)")
+    return names
 
 
 def _get_credentials() -> Any:
@@ -568,6 +574,7 @@ def main() -> None:
         region=os.environ.get("gcp_region"),
         generation=os.environ.get("generation", "1"),
         wait=_wait_enabled(),
+        mode=os.environ.get("mode", "apply"),
     )
     try:
         _main()
@@ -579,6 +586,116 @@ def main() -> None:
         path = annotation.annotation_path()
         if path:
             annotation.write(path, _report)
+
+
+# The upload URL of a 1st gen function only accepts archives up to this size
+_MAX_ARCHIVE_BYTES_GEN1 = 104857600
+
+
+def _check_archive(generation: str) -> list[str]:
+    """
+    Build the archive in memory-backed storage and check it, without uploading.
+
+    Returns:
+        The names of the files that would be uploaded
+
+    Raises:
+        DeployFailed: If there is nothing to upload or the archive is too big
+    """
+    with TemporaryFile() as data:
+        with zipfile.ZipFile(data, mode="w") as file_handler:
+            names = _zip_directory(file_handler)
+        size = data.tell()
+
+    _report["bytes"] = size
+    if not names:
+        raise DeployFailed("There are no files to upload in the function directory")
+    if generation != "2" and size > _MAX_ARCHIVE_BYTES_GEN1:
+        raise DeployFailed(
+            f"The archive is {size / 1024 / 1024:.1f} MiB; a 1st generation upload "
+            f"accepts at most {_MAX_ARCHIVE_BYTES_GEN1 // 1024 // 1024} MiB"
+        )
+    return names
+
+
+def _log_files(names: list[str], limit: int = 200) -> None:
+    for name in names[:limit]:
+        _logger.info(f"  {name}")
+    if len(names) > limit:
+        _logger.info(f"  ... and {len(names) - limit} more")
+
+
+def _validate() -> None:
+    """Check the options and the archive offline; no credentials, no API calls."""
+    generation = os.environ.get("generation", "1")
+    names = _check_archive(generation)
+    _log_files(names)
+    _logger.info(
+        f"Valid: {len(names)} files ({_report['bytes'] / 1024:.1f} KiB) would be "
+        "uploaded"
+    )
+
+
+def _plan(debug_mode: bool) -> None:
+    """
+    Show what a deployment would do. Only reads: it fetches the function and builds
+    the archive, but generates no upload URL, uploads nothing and patches nothing.
+
+    Raises:
+        DeployFailed: If the function cannot be read or the archive is not valid
+    """
+    generation = os.environ.get("generation", "1")
+    gcp_project = os.environ.get("gcp_project")
+    gcp_region = os.environ.get("gcp_region")
+    cloud_function_name = os.environ.get("cloud_function_name")
+    function_path = (
+        f"projects/{gcp_project}/locations/{gcp_region}/functions/{cloud_function_name}"
+    )
+
+    try:
+        service = discovery.build(
+            "cloudfunctions",
+            "v2" if generation == "2" else "v1",
+            credentials=_get_credentials(),
+        )
+        function = (
+            service.projects().locations().functions().get(name=function_path).execute()
+        )
+    except Exception as e:
+        _logger.error(f"Failed to get cloud function: {e}")
+        raise DeployFailed(f"Cloud function not found: {cloud_function_name}") from e
+
+    if generation == "2" and function.get("environment") == "GEN_1":
+        raise DeployFailed(
+            f"{cloud_function_name} is a 1st generation function; "
+            "use `generation: 1` (the default)"
+        )
+
+    if generation == "2":
+        source = function.get("buildConfig", {}).get("source", {})
+        runtime = function.get("buildConfig", {}).get("runtime")
+        state = function.get("state")
+    else:
+        source = {
+            key: function[key]
+            for key in ("sourceArchiveUrl", "sourceUploadUrl", "sourceRepository")
+            if key in function
+        }
+        runtime = function.get("runtime")
+        state = function.get("status")
+    _report["runtime"] = runtime
+    _report["state"] = state
+
+    names = _check_archive(generation)
+    _logger.info(f"Plan for {function_path} (generation {generation}):")
+    _logger.info(f"  current state: {state}, runtime: {runtime}")
+    _logger.info(f"  current source: {source or 'none'}")
+    _logger.info(
+        f"  would upload {len(names)} files ({_report['bytes'] / 1024:.1f} KiB) and "
+        "replace the function's source with them; nothing else changes"
+    )
+    _log_files(names)
+    _logger.info("Nothing was changed (mode is plan)")
 
 
 def _main() -> None:
@@ -602,8 +719,16 @@ def _main() -> None:
 
         _validate_env_variables()
         if _validate_if_path_exists():
-            _deploy(debug_mode)
-            _logger.info("Cloud function deployment completed successfully")
+            mode = os.environ.get("mode", "apply")
+            if mode == "validate":
+                _validate()
+            elif mode == "plan":
+                _plan(debug_mode)
+            elif mode == "apply":
+                _deploy(debug_mode)
+                _logger.info("Cloud function deployment completed successfully")
+            else:
+                raise DeployFailed(f"Unknown mode '{mode}'")
         else:
             cloud_function_directory = os.environ.get("cloud_function_directory", "")
             raise CloudFunctionDirectoryNonExistent(cloud_function_directory)
