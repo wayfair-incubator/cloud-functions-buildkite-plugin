@@ -16,7 +16,8 @@ services:
       dockerfile: "docker/shfmt.dockerfile"
     command: "-s -d ." # (s)implify, show a (d)iff and fail when the code is not formatted; use `-s -w .` to fix
     volumes:
-      - "./hooks:/plugin"
+      - "./hooks:/plugin/hooks"
+      - "./.github/scripts:/plugin/scripts"
 
   devbox: &devbox
     build:

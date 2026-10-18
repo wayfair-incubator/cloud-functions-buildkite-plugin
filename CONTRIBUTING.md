@@ -28,6 +28,22 @@ has been discussed in the past, or if the change was already implemented but not
 We expect new pull requests to include tests for any affected behavior, and, as we follow semantic versioning, we may
 reserve breaking changes until the next major version release.
 
+## Releasing
+
+Users pin a release tag, for example `wayfair-incubator/cloud-functions#v1.0.0`. A release is cut by a pull request:
+
+1. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (follow
+   [Semantic Versioning](https://semver.org/): breaking changes bump the major version) and add a fresh empty
+   `## [Unreleased]` above it.
+2. In `README.md`, update the plugin version in the usage examples and the version badge to `vX.Y.Z`.
+3. Get the pull request approved and merge it.
+
+The [Release workflow](.github/workflows/release.yml) then tags the merge commit `vX.Y.Z` and creates a GitHub
+release whose notes are that changelog section. It does nothing if the release already exists, and fails if the
+README does not mention the new version. It uses only the built-in `GITHUB_TOKEN`; no tokens or secrets are
+needed. Do not create tags by hand. (A release created this way does not trigger other workflows that listen for
+the `release` event.)
+
 ## Dependency updates
 
 Dependencies are updated by [Renovate](https://docs.renovatebot.com/) (`renovate.json`); there is no
