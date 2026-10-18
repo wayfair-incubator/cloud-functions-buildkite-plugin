@@ -57,6 +57,14 @@ Example: `directory/function-code`
 
 ### Optional
 
+### `annotate` (optional, boolean)
+
+Add a Buildkite annotation that summarises the deployment: function, project, region, generation, number and size of the uploaded files, operation name, whether it waited, time taken and, on failure, the error (an error annotation). It is created by the hook on the agent after the run, so the container never gets the agent or its token, and a problem creating it never changes the step's result. Default: `false`.
+
+### `annotation_context` (optional, string)
+
+Context of the annotation, so several deployments in one build each keep their own. Default: `cloud-functions-<cloud_function_name>`.
+
 ### `exclude` (optional, array of strings)
 
 Shell-style globs, relative to `cloud_function_directory`, of files that are not uploaded, in addition to the [built-in exclusions](#what-is-uploaded). A pattern that matches a directory excludes everything inside it, and `*` also matches `/`. The step fails if every file ends up excluded.
