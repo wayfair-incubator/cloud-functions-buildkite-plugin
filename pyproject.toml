@@ -1,6 +1,6 @@
 [project]
 name = "cloud-functions-buildkite-plugin"
-version = "0.2.0"
+version = "1.0.0"
 description = "Buildkite plugin for deploying code to Google Cloud Functions"
 readme = "README.md"
 requires-python = ">=3.11"

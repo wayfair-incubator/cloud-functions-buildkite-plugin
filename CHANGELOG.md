@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-18
+
+The first release since 0.2.0. It contains breaking behaviour changes; see "Upgrading to 1.0.0" in the
+README.
+
 ### Added
 
 - `gcp_service_account` is now optional. Without it the deployment uses Application Default
