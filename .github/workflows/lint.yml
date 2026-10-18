@@ -2,24 +2,31 @@ name: "Lint"
 on:
   pull_request: {}
   push:
-      branches: ["main"]
+    branches: ["main"]
 
 env:
   PYTHON_VERSION: "3.13"
+
+permissions:
+  contents: read
 
 jobs:
   shfmt:
     name: Bash shfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - run: docker compose run --rm shfmt
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker compose run --rm shfmt -s -d .
 
   lint:
     name: Lint bash and markdown
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - run: docker compose run --rm lint
 
   ruff:
@@ -27,23 +34,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v5
-      
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+
       - name: Install dependencies
-        run: |
-          uv pip install --system -r requirements.txt -r requirements-test.txt
-      
+        run: uv pip install --system -r requirements.txt -r requirements-test.txt
+
       - name: Run ruff format check
         run: ruff format --check plugin_scripts tests
-      
+
       - name: Run ruff linter
         run: ruff check plugin_scripts tests
 
@@ -52,19 +61,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v5
-      
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+
       - name: Install dependencies
-        run: |
-          uv pip install --system -r requirements.txt -r requirements-test.txt
+        run: uv pip install --system -r requirements.txt -r requirements-test.txt
 
       - name: Run mypy
         run: mypy plugin_scripts tests
@@ -73,8 +84,10 @@ jobs:
     name: Validate Renovate config
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: 🧼 lint renovate config
-        uses: suzuki-shunsuke/github-action-renovate-config-validator@v1.1.1
+        uses: suzuki-shunsuke/github-action-renovate-config-validator@1e1604219a6b38ae9a10aff42a28a3656322c31a # v2.4.1
         with:
           config_file_path: 'renovate.json'

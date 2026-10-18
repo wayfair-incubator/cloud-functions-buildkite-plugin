@@ -1,11 +1,11 @@
 services:
   test:
-    image: "buildkite/plugin-tester"
+    image: "buildkite/plugin-tester:v4.4.0"
     volumes:
       - ".:/plugin"
 
   lint:
-    image: "buildkite/plugin-linter"
+    image: "buildkite/plugin-linter:v3.1.0"
     command: ['--id', 'wayfair-incubator/cloud-functions']
     volumes:
       - ".:/plugin"
@@ -14,7 +14,7 @@ services:
     build:
       context: .
       dockerfile: "docker/shfmt.dockerfile"
-    command: "-s -l -w ." # (s)implify, (l)ist changes, (w)rite changes to file
+    command: "-s -d ." # (s)implify, show a (d)iff and fail when the code is not formatted; use `-s -w .` to fix
     volumes:
       - "./hooks:/plugin"
 
