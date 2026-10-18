@@ -4,37 +4,15 @@ The Google API client is real (built from its bundled discovery document) and on
 the HTTP transport is faked, so the requests that would be sent are checked.
 """
 
-import json
-from urllib.parse import parse_qs, urlparse
-
-import httplib2
 import pytest
 from googleapiclient import discovery
 
 from plugin_scripts import deploy
 from plugin_scripts.pipeline_exceptions import DeployFailed
+from tests.fakes import FakeHttp
 
 FUNCTION = "projects/p/locations/r/functions/f"
 STORAGE_SOURCE = {"bucket": "upload-bucket", "object": "src.zip", "generation": "0"}
-
-
-class FakeHttp:
-    """Answers API calls from a table and records them."""
-
-    def __init__(self, responses):
-        self.responses = responses
-        self.calls = []
-
-    def request(self, uri, method="GET", body=None, headers=None, **_):
-        parsed = urlparse(uri)
-        self.calls.append(
-            (method, parsed.path, parse_qs(parsed.query), json.loads(body or "null"))
-        )
-        key = (method, parsed.path.rsplit("/v2/", 1)[-1])
-        content = self.responses[key]
-        if callable(content):
-            content = content()
-        return httplib2.Response({"status": "200"}), json.dumps(content).encode()
 
 
 def _fail(message):

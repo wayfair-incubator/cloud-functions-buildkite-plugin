@@ -19,7 +19,12 @@ def render(report: dict[str, Any]) -> str:
     """
     failed = bool(report.get("error"))
     icon = ":x:" if failed else ":white_check_mark:"
-    result = "failed" if failed else "deployed"
+    mode = report.get("mode", "apply")
+    result = (
+        "failed"
+        if failed
+        else {"plan": "planned", "validate": "valid"}.get(mode, "deployed")
+    )
     name = html.escape(str(report.get("function", "?")))
 
     rows = [
@@ -28,15 +33,27 @@ def render(report: dict[str, Any]) -> str:
         _row("Region", report.get("region", "?")),
         _row("Generation", report.get("generation", "?")),
     ]
+    if mode != "apply":
+        rows.insert(0, _row("Mode", f"{mode} (nothing was changed)"))
+    if report.get("runtime"):
+        rows.append(_row("Runtime", report["runtime"]))
+    if report.get("state"):
+        rows.append(_row("Current state", report["state"]))
     if "files" in report:
         rows.append(
-            _row("Files uploaded", f"{report['files']} ({report['excluded']} excluded)")
+            _row(
+                "Files uploaded" if mode == "apply" else "Files that would be uploaded",
+                f"{report['files']} ({report['excluded']} excluded)",
+            )
         )
     if "bytes" in report:
         rows.append(_row("Archive size", f"{report['bytes'] / 1024:.1f} KiB"))
     if report.get("operation"):
         rows.append(_row("Operation", report["operation"]))
-    rows.append(_row("Waited for the operation", "yes" if report.get("wait") else "no"))
+    if mode == "apply":
+        rows.append(
+            _row("Waited for the operation", "yes" if report.get("wait") else "no")
+        )
     if "seconds" in report:
         rows.append(_row("Time", f"{report['seconds']:.0f}s"))
 

@@ -57,6 +57,18 @@ Example: `directory/function-code`
 
 ### Optional
 
+### `mode` (optional, string)
+
+- `apply` (default): deploy.
+- `plan`: show what a deployment would do and change nothing. It reads the function (current state, runtime and source) with your credentials, builds the archive and logs the files that would be uploaded and its size. It does not generate an upload URL, upload or patch anything, so it is safe to run on pull requests with a read-only identity (for example `roles/cloudfunctions.viewer`).
+- `validate`: check the options and the archive offline, with no credentials and no API calls: the directory exists, `exclude` leaves files, and (for 1st generation) the archive is under the 100 MiB upload limit.
+
+```yaml
+          mode: plan
+```
+
+With `annotate`, the annotation says which mode ran.
+
 ### `annotate` (optional, boolean)
 
 Add a Buildkite annotation that summarises the deployment: function, project, region, generation, number and size of the uploaded files, operation name, whether it waited, time taken and, on failure, the error (an error annotation). It is created by the hook on the agent after the run, so the container never gets the agent or its token, and a problem creating it never changes the step's result. Default: `false`.

@@ -273,3 +273,36 @@ teardown() {
   [[ $output == *"No deployment summary"* ]]
   [ ! -e "${DOCKER_LOG}.annotate" ]
 }
+
+@test "mode defaults to apply and is passed to the container" {
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "mode=apply" "${DOCKER_LOG}.create"
+}
+
+@test "an unknown mode is rejected" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_MODE=destroy
+  run "${HOOK}"
+  [ "$status" -eq 1 ]
+  [[ $output == *"mode must be one of apply, plan or validate"* ]]
+}
+
+@test "plan mode uses the credentials like apply" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_MODE=plan
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "mode=plan" "${DOCKER_LOG}.create"
+  grep -qx -- "credentials" "${DOCKER_LOG}.create"
+}
+
+@test "validate mode needs and passes no credentials" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_MODE=validate
+  echo '{}' >"${TEST_DIR}/adc.json"
+  export GOOGLE_APPLICATION_CREDENTIALS="${TEST_DIR}/adc.json"
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "mode=validate" "${DOCKER_LOG}.create"
+  ! grep -qx -- "credentials" "${DOCKER_LOG}.create"
+  ! grep -qx -- "--volume" "${DOCKER_LOG}.create"
+  ! grep -q "TOP-SECRET-KEY" "${DOCKER_LOG}.env"
+}

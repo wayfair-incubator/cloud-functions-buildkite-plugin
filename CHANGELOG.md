@@ -37,6 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   token. `annotation_context` (default `cloud-functions-<cloud_function_name>`) separates the
   annotations of several functions. All values are HTML-escaped and a failure to annotate never changes
   the step's result.
+- `mode` option. `plan` shows what a deployment would do and changes nothing: it only reads the
+  function (state, runtime, current source), builds the archive and logs the files that would be
+  uploaded and the archive size; no upload URL is generated and nothing is uploaded or patched.
+  `validate` checks the options and the archive offline with no credentials (directory exists,
+  files remain after `exclude`, 1st generation archive within the 100 MiB upload limit). `apply`
+  (the default) is unchanged. The annotation reports the mode.
 
 ### Changed
 

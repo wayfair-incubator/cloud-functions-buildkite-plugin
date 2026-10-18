@@ -18,6 +18,10 @@ configuration:
     cloud_function_directory:
       type: string
       description: "Directory of the repository that holds the function's code"
+    mode:
+      type: string
+      enum: ["apply", "plan", "validate"]
+      description: "apply deploys (default), plan shows what a deployment would do without changing anything, validate checks the options and the archive offline without credentials"
     annotate:
       type: boolean
       description: "Add a Buildkite annotation that summarises the deployment (default: false)"
