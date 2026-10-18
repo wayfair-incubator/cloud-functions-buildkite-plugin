@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   function the plugin now polls the Cloud Functions operation until it is done and fails the step
   with the error of the operation (for example a failed build). **BREAKING (behaviour):** steps whose
   deployment was accepted but then failed used to pass; set `wait: false` for the old behaviour.
+- Release workflow: when a pull request that turns `## [Unreleased]` into `## [X.Y.Z]` is merged,
+  the commit is tagged `vX.Y.Z` and a GitHub release is created with that section as its notes. It
+  uses only `GITHUB_TOKEN`, does nothing if the release exists and fails if the README does not
+  mention the version. See CONTRIBUTING.md. `.github/scripts/changelog.sh` has bats tests.
 
 ### Changed
 
@@ -87,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/command.bats`: tests of the hook with a stub `docker` (it had none), run in CI as
   `Bats (hooks/command)`.
 
-## [v0.2.0] - 2025-11-02
+## [0.2.0] - 2025-11-02
 
 ### Changed (Breaking)
 
@@ -276,13 +280,13 @@ No changes required. The plugin API remains the same. Simply pull the latest ver
 4. **Update IDE/Editor**: Configure to use ruff instead of black/isort/flake8
 5. **Run Tests**: `docker-compose run --rm py-test`
 
-## [v0.1.2] - 2022-04-11
+## [0.1.2] - 2022-04-11
 
 ### Changed
 
 * Update dependencies
 
-## [v0.1.1] - 2021-12-14
+## [0.1.1] - 2021-12-14
 
 ### Changed
 
