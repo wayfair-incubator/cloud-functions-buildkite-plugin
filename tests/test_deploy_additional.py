@@ -131,6 +131,7 @@ def test__deploy_with_source_archive_url(mocker, monkeypatch):
     # Mock other dependencies
     mocker.patch("plugin_scripts.deploy._get_bq_credentials")
     mocker.patch("plugin_scripts.deploy._zip_directory")
+    mocker.patch("plugin_scripts.deploy._wait_for_operation")
     mock_upload_archive = mocker.patch(
         "plugin_scripts.deploy._upload_source_code_using_archive_url"
     )
@@ -176,6 +177,7 @@ def test__deploy_with_upload_url(mocker, monkeypatch):
     # Mock other dependencies
     mocker.patch("plugin_scripts.deploy._get_bq_credentials")
     mocker.patch("plugin_scripts.deploy._zip_directory")
+    mocker.patch("plugin_scripts.deploy._wait_for_operation")
     mock_upload_url = mocker.patch(
         "plugin_scripts.deploy._upload_source_code_using_upload_url"
     )
@@ -217,6 +219,7 @@ def test__deploy_with_debug_mode(mocker, monkeypatch):
     # Mock other dependencies
     mocker.patch("plugin_scripts.deploy._get_bq_credentials")
     mocker.patch("plugin_scripts.deploy._zip_directory")
+    mocker.patch("plugin_scripts.deploy._wait_for_operation")
     mocker.patch("plugin_scripts.deploy._upload_source_code_using_upload_url")
 
     # Execute with debug mode

@@ -133,3 +133,26 @@ teardown() {
   [ "$status" -eq 0 ]
   grep -qx -- "python:3.15-slim" "${DOCKER_LOG}.create"
 }
+
+@test "waiting for the deployment is on by default with a 600s timeout" {
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "wait=true" "${DOCKER_LOG}.create"
+  grep -qx -- "wait_timeout=600" "${DOCKER_LOG}.create"
+}
+
+@test "wait and wait_timeout are passed to the container" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_WAIT=false
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_WAIT_TIMEOUT=90
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "wait=false" "${DOCKER_LOG}.create"
+  grep -qx -- "wait_timeout=90" "${DOCKER_LOG}.create"
+}
+
+@test "a wait_timeout that is not a number is rejected" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_WAIT_TIMEOUT=soon
+  run "${HOOK}"
+  [ "$status" -eq 1 ]
+  [[ $output == *"wait_timeout must be a number"* ]]
+}

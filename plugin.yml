@@ -21,6 +21,12 @@ configuration:
     gcp_service_account:
       type: string
       description: "Service account key (JSON). May also be given as the gcp_service_account environment variable"
+    wait:
+      type: boolean
+      description: "Wait for the deployment to finish and fail the step if it fails (default: true)"
+    wait_timeout:
+      type: integer
+      description: "Seconds to wait for the deployment to finish (default: 600)"
     custom_image:
       type: string
       description: "Docker image used to run the deployment (default: python:3.15-slim)"
