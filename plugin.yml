@@ -18,6 +18,12 @@ configuration:
     cloud_function_directory:
       type: string
       description: "Directory of the repository that holds the function's code"
+    annotate:
+      type: boolean
+      description: "Add a Buildkite annotation that summarises the deployment (default: false)"
+    annotation_context:
+      type: string
+      description: "Context of the annotation, so several deployments can each keep their own (default: cloud-functions-<cloud_function_name>)"
     exclude:
       type: array
       items:

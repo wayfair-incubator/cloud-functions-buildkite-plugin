@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are not uploaded (for example `tests` or `*.md`), in addition to the built-in exclusions. The patterns
   reach the container as a newline-separated environment variable, never inside a shell command. The step
   fails when every file is excluded; the log reports how many files were excluded.
+- `annotate` option: adds a Buildkite annotation with a summary of the deployment (function, project,
+  region, generation, files and size, operation, time and, on failure, the error as an error
+  annotation), created from the agent after the run so the container never gets the agent or its
+  token. `annotation_context` (default `cloud-functions-<cloud_function_name>`) separates the
+  annotations of several functions. All values are HTML-escaped and a failure to annotate never changes
+  the step's result.
 
 ### Changed
 

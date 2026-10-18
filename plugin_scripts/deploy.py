@@ -19,6 +19,7 @@ from google.oauth2 import service_account
 from googleapiclient import discovery
 from requests import Response
 
+from plugin_scripts import annotation
 from plugin_scripts.pipeline_exceptions import (
     CloudFunctionDirectoryNonExistent,
     DeployFailed,
@@ -30,6 +31,9 @@ _logger.setLevel(logging.INFO)
 console = logging.StreamHandler()
 _logger.addHandler(console)
 
+
+# What the annotation reports; filled in while deploying
+_report: dict[str, Any] = {}
 
 _SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
 
@@ -107,6 +111,8 @@ def _zip_directory(handler: zipfile.ZipFile) -> None:
         _logger.error(msg)
         raise DeployFailed(msg)
 
+    _report["files"] = file_count
+    _report["excluded"] = excluded_count
     _logger.info(f"Successfully zipped {file_count} files ({excluded_count} excluded)")
 
 
@@ -387,6 +393,7 @@ def _deploy_gen1(debug_mode: bool) -> None:
             file_handler = zipfile.ZipFile(data, mode="w")
             _zip_directory(file_handler)
             file_handler.close()
+            _report["bytes"] = data.tell()
             data.seek(0)
 
             if "sourceArchiveUrl" in function:
@@ -413,6 +420,7 @@ def _deploy_gen1(debug_mode: bool) -> None:
             ).execute()
             _logger.info("Successfully patched Cloud Function")
             _logger.info(f"Operation Name: {response['name']}")
+            _report["operation"] = response["name"]
 
             if debug_mode:
                 _logger.debug(f"Response: {pformat(response)}")
@@ -490,6 +498,7 @@ def _deploy_gen2(debug_mode: bool) -> None:
             file_handler = zipfile.ZipFile(data, mode="w")
             _zip_directory(file_handler)
             file_handler.close()
+            _report["bytes"] = data.tell()
             data.seek(0)
 
             try:
@@ -515,6 +524,7 @@ def _deploy_gen2(debug_mode: bool) -> None:
         ).execute()
         _logger.info("Successfully patched Cloud Function")
         _logger.info(f"Operation Name: {response['name']}")
+        _report["operation"] = response["name"]
 
         if _wait_enabled():
             _wait_for_operation(
@@ -546,6 +556,34 @@ def _deploy(debug_mode: bool) -> None:
 def main() -> None:
     """
     Main entry point for cloud function deployment.
+
+    Writes the annotation file first when `annotation_file` is set, whatever the
+    outcome.
+    """
+    _report.clear()
+    started = time.monotonic()
+    _report.update(
+        function=os.environ.get("cloud_function_name"),
+        project=os.environ.get("gcp_project"),
+        region=os.environ.get("gcp_region"),
+        generation=os.environ.get("generation", "1"),
+        wait=_wait_enabled(),
+    )
+    try:
+        _main()
+    except Exception as e:
+        _report["error"] = str(e)
+        raise
+    finally:
+        _report["seconds"] = time.monotonic() - started
+        path = annotation.annotation_path()
+        if path:
+            annotation.write(path, _report)
+
+
+def _main() -> None:
+    """
+    Run the deployment.
 
     Raises:
         CloudFunctionDirectoryNonExistent: If the cloud function directory

@@ -23,6 +23,12 @@ case "$1" in
     echo fakecontainer
     ;;
   cp)
+    # copying the annotation out of the container
+    if [[ $2 == *:/tmp/cloud-functions-annotation.html ]]; then
+      [ -n "${STUB_NO_ANNOTATION:-}" ] && exit 1
+      echo "STUB-ANNOTATION" >"$3"
+      exit 0
+    fi
     exit "${STUB_CP_RC:-0}"
     ;;
   start)
@@ -31,6 +37,13 @@ case "$1" in
 esac
 STUB
   chmod +x "${STUB_BIN}/docker"
+
+  cat >"${STUB_BIN}/buildkite-agent" <<'STUB'
+#!/bin/bash
+printf '%s\n' "$@" >"${DOCKER_LOG}.annotate"
+cat >"${DOCKER_LOG}.annotate.body"
+STUB
+  chmod +x "${STUB_BIN}/buildkite-agent"
 
   cd "${TEST_DIR}/repo"
   export PATH="${STUB_BIN}:${PATH}"
@@ -220,4 +233,43 @@ teardown() {
   run "${HOOK}"
   [ "$status" -eq 0 ]
   grep -qx -- 'exclude_patterns=' "${DOCKER_LOG}.create"
+}
+
+@test "no annotation unless annotate is set" {
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  [ ! -e "${DOCKER_LOG}.annotate" ]
+  ! grep -q "annotation_file" "${DOCKER_LOG}.create"
+}
+
+@test "annotate copies the summary out of the container and annotates from the host" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_ANNOTATE=true
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  grep -qx -- "annotation_file=/tmp/cloud-functions-annotation.html" "${DOCKER_LOG}.create"
+  grep -qx -- "success" "${DOCKER_LOG}.annotate"
+  grep -qx -- "cloud-functions-my-function" "${DOCKER_LOG}.annotate"
+  grep -q "STUB-ANNOTATION" "${DOCKER_LOG}.annotate.body"
+  # the agent and its token never go into the container
+  ! grep -q "buildkite-agent" "${DOCKER_LOG}.create"
+}
+
+@test "a failed deployment is annotated as an error and keeps its exit code" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_ANNOTATE=true
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_ANNOTATION_CONTEXT=my-ctx
+  export STUB_START_RC=3
+  run "${HOOK}"
+  [ "$status" -eq 3 ]
+  grep -qx -- "error" "${DOCKER_LOG}.annotate"
+  grep -qx -- "my-ctx" "${DOCKER_LOG}.annotate"
+  grep -q "^rm -f fakecontainer" "${DOCKER_LOG}"
+}
+
+@test "a missing summary or agent never fails the step" {
+  export BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_ANNOTATE=true
+  export STUB_NO_ANNOTATION=1
+  run "${HOOK}"
+  [ "$status" -eq 0 ]
+  [[ $output == *"No deployment summary"* ]]
+  [ ! -e "${DOCKER_LOG}.annotate" ]
 }

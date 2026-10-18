@@ -74,6 +74,12 @@ if [[ ! ${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_WAIT:-true} =~ ^(true|on|yes|1)$ ]]; 
 	wait="false"
 fi
 
+annotate="false"
+if [[ ${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_ANNOTATE:-false} =~ ^(true|on|yes|1)$ ]]; then
+	annotate="true"
+fi
+annotation_context="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_ANNOTATION_CONTEXT:-cloud-functions-${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_CLOUD_FUNCTION_NAME:-}}"
+
 generation="${BUILDKITE_PLUGIN_CLOUD_FUNCTIONS_GENERATION:-1}"
 if [[ ${generation} != "1" && ${generation} != "2" ]]; then
 	echo "ERROR: generation must be 1 or 2, not '${generation}'"
@@ -160,6 +166,11 @@ args+=(
 	"--env" "wait_timeout=$wait_timeout"
 )
 
+annotation_container_file="/tmp/cloud-functions-annotation.html"
+if [[ ${annotate} == "true" ]]; then
+	args+=("--env" "annotation_file=${annotation_container_file}")
+fi
+
 if [[ -n ${gcp_service_account} ]]; then
 	args+=("--env" "credentials")
 elif [[ -n $adc_credentials_file ]]; then
@@ -215,11 +226,39 @@ fi
 DOCKERID=$(credentials="${gcp_service_account}" docker create "${args[@]}")
 
 # The container is removed on every exit path, including a failed `docker cp`
+annotation_tmp=""
 function cleanup {
 	docker rm -f "${DOCKERID}" >/dev/null 2>&1 || true
+	if [[ -n $annotation_tmp ]]; then
+		rm -f "$annotation_tmp"
+	fi
 }
 trap cleanup EXIT
 
 docker cp "${PWD}/." "${DOCKERID}:${workdir}"
 docker cp "${PLUGIN_DIR}/plugin_scripts" "${DOCKERID}:${workdir}/plugin_scripts"
-docker start -a "${DOCKERID}"
+
+rv=0
+docker start -a "${DOCKERID}" || rv=$?
+
+# Annotate from the host so the container never needs the agent or its token.
+# A problem here must not change the result of the deployment itself.
+if [[ ${annotate} == "true" ]]; then
+	if ! command -v buildkite-agent >/dev/null 2>&1; then
+		echo "⚠️  annotate is set but buildkite-agent was not found, skipping the annotation"
+	else
+		annotation_tmp=$(mktemp)
+		if docker cp "${DOCKERID}:${annotation_container_file}" "$annotation_tmp" >/dev/null 2>&1; then
+			style="success"
+			if ((rv != 0)); then
+				style="error"
+			fi
+			buildkite-agent annotate --style "$style" --context "$annotation_context" <"$annotation_tmp" ||
+				echo "⚠️  Could not create the annotation"
+		else
+			echo "⚠️  No deployment summary was produced, skipping the annotation"
+		fi
+	fi
+fi
+
+exit "$rv"
